@@ -30,9 +30,10 @@ class Language(
 class User(
     var telegramId: String,
     var username: String?,
-    var roleList: List<Role>,
+    @Enumerated(EnumType.STRING)
+    var role: Role,
     var online: Boolean,
-    @ManyToMany var languageList: List<Language>
+    @ManyToOne var languageList: Language
 ) : BaseEntity()
 
 @Entity
