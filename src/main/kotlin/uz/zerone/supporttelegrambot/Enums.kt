@@ -8,3 +8,11 @@ Created by Akhmadali
 enum class Role {
     USER, ADMIN, OPERATOR
 }
+
+enum class Language {
+    UZ, ENG, RU
+}
+
+enum class MessageType {
+    VIDEO, AUDIO, PHOTO, DOCUMENT
+}
