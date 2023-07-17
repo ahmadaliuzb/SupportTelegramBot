@@ -47,7 +47,7 @@ class BaseRepositoryImpl<T : BaseEntity>(
 }
 
 interface UserRepository : BaseRepository<User> {
-    fun existsByUserName(userName: String): Boolean
+//    fun existsByUserName(userName: String): Boolean
 }
 
 interface SessionRepository : BaseRepository<Session> {
