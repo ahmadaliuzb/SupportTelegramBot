@@ -59,6 +59,6 @@ class File(
 
 @Entity
 class Content(
-    var data:Array<Byte>,
+    var data: ByteArray,
     @ManyToOne val file: File,
 ) : BaseEntity()
