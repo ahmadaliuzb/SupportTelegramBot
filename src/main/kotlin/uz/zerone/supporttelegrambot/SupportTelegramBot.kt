@@ -19,8 +19,3 @@ class SupportTelegramBot() : TelegramLongPollingBot(
     }
 }
 
-fun main() {
-    val telegramBotsApi = TelegramBotsApi(DefaultBotSession::class.java)
-    telegramBotsApi.registerBot(SupportTelegramBot())
-
-}
