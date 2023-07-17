@@ -33,8 +33,10 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
-    implementation("org.telegram:telegrambots:6.7.0")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    implementation("org.telegram:telegrambots:6.1.0")
+
 }
 
 tasks.withType<KotlinCompile> {
