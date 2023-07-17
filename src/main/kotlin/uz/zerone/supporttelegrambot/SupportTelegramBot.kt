@@ -6,35 +6,14 @@ import org.telegram.telegrambots.meta.api.objects.Update
 
 @Component
 class SupportTelegramBot(
-  var  messageService: MessageService
-): TelegramLongPollingBot() {
+    private val messageService: MessageService
+) : TelegramLongPollingBot() {
     override fun getBotToken(): String = "6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s"
-
-    override fun getBotUsername() :String = " session_support_bot"
-
+    override fun getBotUsername(): String = "session_support_bot"
     override fun onUpdateReceived(update: Update) {
-        messageService.start(update)
-        val sendMessage = SendMessage()
-        val chatId = update.message.chatId
-        sendMessage.chatId = chatId.toString()
-
-        sendMessage.text = "Hello world"
-
-        val inlineKeyboardMarkup = InlineKeyboardMarkup()
-        val inlineKeyboardButtonsRow = ArrayList<InlineKeyboardButton>()
-        inlineKeyboardButtonsRow.add(InlineKeyboardButton.builder()
-            .text("Button1")
-            .callbackData("button1")
-            .build())
-        inlineKeyboardButtonsRow.add(InlineKeyboardButton.builder().text("Button")
-            .callbackData("button2")
-            .build())
-        val inlineKeyboardButtons = ArrayList<List<InlineKeyboardButton>>()
-        inlineKeyboardButtons.add(inlineKeyboardButtonsRow)
-        inlineKeyboardMarkup.keyboard = inlineKeyboardButtons
-
-        sendMessage.replyMarkup = inlineKeyboardMarkup
-        execute(sendMessage)
+        println(update.message)
+       val message = messageService.start(update)
+        execute(message)
 
     }
 }

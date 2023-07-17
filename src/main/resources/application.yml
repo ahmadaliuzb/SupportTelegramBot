@@ -1,3 +1,6 @@
+#bot:
+#  username: https://t.me/session_support_bot
+#  token: 6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s
 server:
   port: 8890
 spring:
