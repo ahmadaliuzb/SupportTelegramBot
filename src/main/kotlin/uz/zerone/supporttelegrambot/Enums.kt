@@ -16,3 +16,7 @@ enum class Language {
 enum class MessageType {
     VIDEO, AUDIO, PHOTO, DOCUMENT
 }
+
+enum class BotState{
+    CHOOSE_LANGUAGE
+}
