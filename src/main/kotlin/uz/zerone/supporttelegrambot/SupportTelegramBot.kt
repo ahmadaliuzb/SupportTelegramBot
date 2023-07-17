@@ -6,14 +6,15 @@ import org.telegram.telegrambots.meta.api.objects.Update
 
 @Component
 class SupportTelegramBot(
-  var  messageService: MessageService
-): TelegramLongPollingBot() {
+    private val messageService: MessageService
+) : TelegramLongPollingBot() {
     override fun getBotToken(): String = "6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s"
-
-    override fun getBotUsername() :String = " session_support_bot"
-
+    override fun getBotUsername(): String = "session_support_bot"
     override fun onUpdateReceived(update: Update) {
-        messageService.start(update)
+        println(update.message)
+       val message = messageService.start(update)
+        execute(message)
+
     }
 }
 

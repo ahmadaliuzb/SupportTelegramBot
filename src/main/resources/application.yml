@@ -1,11 +1,14 @@
+#bot:
+#  username: https://t.me/session_support_bot
+#  token: 6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s
 server:
   port: 8890
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/support_bot
+    url: jdbc:postgresql://localhost:5432/learning
     username: postgres
-    password: root123
+    password: 1234
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:

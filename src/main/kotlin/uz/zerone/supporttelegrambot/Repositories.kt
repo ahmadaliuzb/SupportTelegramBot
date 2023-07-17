@@ -1,7 +1,5 @@
 package uz.zerone.supporttelegrambot
 
-import jakarta.persistence.EntityManager
-import jakarta.transaction.Transactional
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.domain.Specification
@@ -11,6 +9,8 @@ import org.springframework.data.jpa.repository.support.JpaEntityInformation
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository
 import org.springframework.data.repository.NoRepositoryBean
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.transaction.annotation.Transactional
+import javax.persistence.EntityManager
 
 
 /**
