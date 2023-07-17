@@ -46,8 +46,9 @@ class BaseRepositoryImpl<T : BaseEntity>(
     override fun trashList(ids: List<Long>): List<T?> = ids.map { trash(it) }
 }
 
+
 interface UserRepository : BaseRepository<User> {
-//    fun existsByUserName(userName: String): Boolean
+    fun existsByUsername(username: String):Boolean
 }
 
 interface SessionRepository : BaseRepository<Session> {
