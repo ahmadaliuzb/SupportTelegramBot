@@ -16,11 +16,21 @@ Created by Akhmadali
  */
 
 @Service
+class MessageService(
+) {
+
+    fun start(update: Update) :SendMessage{
+        var sendMessage = SendMessage()
 class MessageService(var userRepository: UserRepository) {
     fun start(update: Update) :SendMessage{
         val message = update.message
+        if (message.text.equals("/start")) {
         if (message?.text.equals("/contact")) {
             val chatId = getChatId(update)
+             sendMessage = SendMessage(
+                chatId,"Tilni tanlang!" +
+                    "Choose languagle!")
+            sendLanguageSelection(sendMessage)
             val keyboard = ReplyKeyboardMarkup()
             val contactRequestButton = KeyboardButton("Share contact")
             keyboard.keyboard = listOf(listOf(contactRequestButton)) as MutableList<KeyboardRow>
@@ -28,6 +38,32 @@ class MessageService(var userRepository: UserRepository) {
             sendMessage.replyMarkup = keyboard
            return sendMessage
         }
+         return sendMessage
+    }
+
+    private fun sendLanguageSelection(sendMessage: SendMessage) {
+        val inlineKeyboardMarkup = InlineKeyboardMarkup()
+        val inlineKeyboardButtonsRow = ArrayList<InlineKeyboardButton>()
+        inlineKeyboardButtonsRow.add(
+            InlineKeyboardButton.builder()
+                .text("O`zbek tili \uD83C\uDDFA\uD83C\uDDFF ")
+                .callbackData("button1")
+                .build())
+        inlineKeyboardButtonsRow.add(
+            InlineKeyboardButton.builder().text("Русский \uD83C\uDDF7\uD83C\uDDFA")
+                .callbackData("button2")
+                .build())
+
+        inlineKeyboardButtonsRow.add(
+            InlineKeyboardButton.builder().text("English \uD83C\uDDEC\uD83C\uDDE7")
+                .callbackData("button2")
+                .build())
+        val inlineKeyboardButtons = ArrayList<List<InlineKeyboardButton>>()
+        inlineKeyboardButtons.add(inlineKeyboardButtonsRow)
+        inlineKeyboardMarkup.keyboard = inlineKeyboardButtons
+
+        sendMessage.replyMarkup = inlineKeyboardMarkup
+
         return SendMessage()
     }
     fun confirmContact(update: Update):SendMessage{
@@ -77,7 +113,6 @@ class UserService() {
 class FileService() {
 
 }
-
 
 class ContentService() {
 
