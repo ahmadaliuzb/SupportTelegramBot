@@ -8,4 +8,4 @@ class SupportTelegramBotApplication
 
 fun main(args: Array<String>) {
     runApplication<SupportTelegramBotApplication>(*args)
-}
+    }
