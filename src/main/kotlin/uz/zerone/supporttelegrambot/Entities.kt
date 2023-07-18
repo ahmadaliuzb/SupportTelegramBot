@@ -27,6 +27,8 @@ class User(
     var username: String?,
     var phoneNumber: String,
     @Enumerated(EnumType.STRING)
+    var botStep: BotStep,
+    @Enumerated(EnumType.STRING)
     var role: Role,
     var online: Boolean,
     @Enumerated(EnumType.STRING)

@@ -17,6 +17,9 @@ enum class MessageType {
     VIDEO, AUDIO, PHOTO, DOCUMENT
 }
 
-enum class BotState{
-    CHOOSE_LANGUAGE
+enum class BotStep{
+    CHOOSE_LANGUAGE,
+    OFFLINE,
+    ONLINE,
+    IN_SESSION,
 }
