@@ -49,7 +49,8 @@ class BaseRepositoryImpl<T : BaseEntity>(
 
 
 interface UserRepository : BaseRepository<User> {
-    fun existsByUsername(username: String):Boolean
+    fun existsByUsername(username: String)
+    fun findByTelegramId(telegramId: String): User
 }
 
 interface SessionRepository : BaseRepository<Session> {
@@ -66,4 +67,8 @@ interface FileRepository : BaseRepository<File> {
 
 interface ContentRepository : BaseRepository<Content> {
 
+}
+
+interface LanguageRepository : BaseRepository<Language> {
+    fun findByLanguageEnum(languageEnum: LanguageEnum): Language
 }

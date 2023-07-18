@@ -22,16 +22,24 @@ class BaseEntity(
     @Column(nullable = false) @ColumnDefault(value = "false") var deleted: Boolean = false,
 )
 
+@Entity
+class Language(
+    @Enumerated(EnumType.STRING)
+    val languageEnum: LanguageEnum
+) : BaseEntity()
+
 @Entity(name = "users")
 class User(
+    @Column(unique = true)
     var telegramId: String,
+    @Column(unique = true)
     var username: String?,
-    var phoneNumber: String,
+    var phoneNumber: String?,
     @Enumerated(EnumType.STRING)
     var role: Role,
     var online: Boolean,
-    @Enumerated(EnumType.STRING)
-    var language: Language
+    @ManyToMany
+    val languageList: List<Language>
 ) : BaseEntity()
 
 @Entity
@@ -43,7 +51,7 @@ class Session(
 
 @Entity
 class Message(
-    var telegramMessageId: String,
+    var telegramMessageId: Int,
     @ManyToOne val session: Session,
     @ManyToOne val sender: User,
     var messageType: MessageType,

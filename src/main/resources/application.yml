@@ -5,7 +5,8 @@ spring:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/support_bot
     username: postgres
-    password: ahmadali1976
+    password: root123
+
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -21,3 +22,4 @@ spring:
         implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyComponentPathImpl
       ddl-auto: create
 
+    show-sql: true
