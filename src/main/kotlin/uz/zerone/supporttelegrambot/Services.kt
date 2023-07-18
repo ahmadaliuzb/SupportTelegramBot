@@ -1,15 +1,18 @@
 package uz.zerone.supporttelegrambot
 
 import org.springframework.stereotype.Service
+import org.telegram.telegrambots.meta.api.methods.GetFile
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.objects.Update
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException
+import java.io.File
+import java.io.IOException
+import java.net.URL
 
 
 /**
@@ -128,7 +131,9 @@ class MessageService(
 
     }
 
+    fun createMessage(update: Update) {
 
+    }
 
 
 }
@@ -140,15 +145,19 @@ fun getChatId(update: Update): String {
 }
 
 class UserService() {
-//                val keyboard = ReplyKeyboardMarkup()
-//                val contactRequestButton = KeyboardButton("Share contact")
-//                keyboard.keyboard = listOf(listOf(contactRequestButton)) as MutableList<KeyboardRow>
-//                val sendMessage = SendMessage(chatId, "Please share your contact number:")
-//                sendMessage.replyMarkup = keyboard
-//                return sendMessage
 }
 
-class FileService() {
+
+@Service
+class FileService(
+    private val fileRepository: FileRepository,
+    private val messageService: MessageService
+) {
+//    fun createFile() {
+//        val file = uz.zerone.supporttelegrambot.File(
+//
+//        )
+//    }
 
 }
 
