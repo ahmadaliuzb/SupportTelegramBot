@@ -67,21 +67,18 @@ interface UserRepository : BaseRepository<User> {
 }
 
 interface SessionRepository : BaseRepository<Session> {
-    fun findByUserIdAndOperatorId(user_id: Long, operator_id: Long):Optional<Session>
+    fun findByUserIdAndOperatorId(user_id: Long, operator_id: Long): Optional<Session>
 }
 
 interface MessageRepository : BaseRepository<Message> {
-
+    fun findByTelegramMessageIdAndDeletedFalse(telegramMessageId: Int): Message
 }
 
 interface FileRepository : BaseRepository<File> {
 
 }
 
-interface ContentRepository : BaseRepository<Content> {
-
-}
 
 interface LanguageRepository : BaseRepository<Language> {
-    fun findByLanguageEnum(languageEnum: LanguageEnum): Language
+    fun findByLanguageEnumAndDeletedFalse(languageEnum: LanguageEnum): Language
 }

@@ -50,29 +50,28 @@ class Session(
     @ManyToOne val user: User,
     @ManyToOne val operator: User?,
     var active: Boolean,
-    var assessment:Int?
+    var assessment: Int?
 ) : BaseEntity()
 
 @Entity
 class Message(
+    @ManyToOne
+    var parentMessage: Message?,
     var telegramMessageId: Int,
-    @ManyToOne val session: Session,
+    @ManyToOne val session: Session?,
     @ManyToOne val sender: User,
     var messageType: MessageType,
-    var active: Boolean
+    var active: Boolean,
+    val text: String?
 ) : BaseEntity()
 
 
 @Entity
 class File(
     var name: String,
-    var contentType: String?,
+    var contentType: ContentType,
     @ManyToOne val message: Message,
 ) : BaseEntity()
 
 //
-@Entity
-class Content(
-    var data: ByteArray,
-    @ManyToOne val file: File,
-) : BaseEntity()
+

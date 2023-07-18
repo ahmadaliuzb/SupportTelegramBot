@@ -24,6 +24,7 @@ class MessageService(
     private val userService: UserService,
     private val sessionRepository: SessionRepository,
     private val sessionService: SessionService,
+    private val messageRepository: MessageRepository
 ) {
     fun start(update: Update): SendMessage {
         val chatId = getChatId(update)
@@ -87,15 +88,15 @@ class MessageService(
         val languageList = mutableListOf<Language>()
         when (data) {
             "english" -> {
-                languageList.add(languageRepository.findByLanguageEnum(LanguageEnum.ENG))
+                languageList.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.ENG))
             }
 
             "uzbek" -> {
-                languageList.add(languageRepository.findByLanguageEnum(LanguageEnum.UZ))
+                languageList.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.UZ))
             }
 
             "russian" -> {
-                languageList.add(languageRepository.findByLanguageEnum(LanguageEnum.RU))
+                languageList.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.RU))
             }
         }
 
@@ -131,6 +132,7 @@ class MessageService(
         }
         return markup
     }
+
 
     fun generateReplyMarkup(user: User): ReplyKeyboardMarkup {
         val markup = ReplyKeyboardMarkup()
@@ -185,6 +187,23 @@ class MessageService(
         return sendMessage
     }
 
+    fun createMessage(update: Update) {
+            val telegramId = update.message.from.id
+            val user = userRepository.findByTelegramId(telegramId.toString())
+
+            val messageId = update.message.messageId
+
+            val parentMessage = update.message.replyToMessage
+            if (parentMessage != null) {
+                val parentDBMessage = messageRepository.findByIdAndDeletedFalse(parentMessage.messageId.toLong())
+                val saveMessage =
+                    Message(parentDBMessage, messageId, null, user, MessageType.TEXT, true, update.message.text)
+                messageRepository.save(saveMessage)
+            }
+
+            val saveMessage = Message(null, messageId, null, user, MessageType.TEXT, true, update.message.text)
+            messageRepository.save(saveMessage)
+    }
 
 }
 
@@ -204,13 +223,15 @@ class UserService(
     fun getOrCreateUser(update: Update): User {
         val chatId = getChatId(update)
         if (!userRepository.existsByTelegramIdAndDeletedFalse(chatId)) {
-           return userRepository.save(
+            return userRepository.save(
                 User(
                     chatId,
                     update.message.from.id.toString(),
                     update.message.from.userName,
                     BotStep.START,
-                    Role.USER, true, mutableListOf(languageRepository.findByLanguageEnum(LanguageEnum.UZ))
+                    Role.USER,
+                    true,
+                    mutableListOf(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.UZ))
                 )
             )
         }
@@ -236,6 +257,21 @@ class SessionService(
     }
 }
 
-class FileService() {
+
+@Service
+class FileService(
+    private val fileRepository: FileRepository,
+    private val messageRepository: MessageRepository,
+    private val messageService: MessageService
+) {
+    fun createFile(update: Update, name: String, contentType: ContentType) {
+        val message =
+            messageRepository.findByTelegramMessageIdAndDeletedFalse(update.message.messageId)
+
+        val file = File(
+            name, contentType, message
+        )
+        fileRepository.save(file)
+    }
 
 }
