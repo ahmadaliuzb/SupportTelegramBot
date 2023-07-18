@@ -1,7 +1,6 @@
 package uz.zerone.supporttelegrambot
 
-import jakarta.persistence.EntityManager
-import jakarta.transaction.Transactional
+
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.domain.Specification
@@ -11,6 +10,8 @@ import org.springframework.data.jpa.repository.support.JpaEntityInformation
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository
 import org.springframework.data.repository.NoRepositoryBean
 import org.springframework.data.repository.findByIdOrNull
+import javax.persistence.EntityManager
+import javax.transaction.Transactional
 
 
 /**
@@ -48,7 +49,8 @@ class BaseRepositoryImpl<T : BaseEntity>(
 
 
 interface UserRepository : BaseRepository<User> {
-    fun existsByUsername(username: String):Boolean
+    fun existsByUsername(username: String)
+    fun findByTelegramId(telegramId: String): User
 }
 
 interface SessionRepository : BaseRepository<Session> {
@@ -65,4 +67,8 @@ interface FileRepository : BaseRepository<File> {
 
 interface ContentRepository : BaseRepository<Content> {
 
+}
+
+interface LanguageRepository : BaseRepository<Language> {
+    fun findByLanguageEnum(languageEnum: LanguageEnum): Language
 }

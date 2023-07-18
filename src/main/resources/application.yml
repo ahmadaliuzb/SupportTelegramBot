@@ -6,6 +6,8 @@ spring:
     url: jdbc:postgresql://localhost:5432/support_bot
     username: postgres
     password: root123
+
+
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
@@ -19,3 +21,5 @@ spring:
       naming:
         implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyComponentPathImpl
       ddl-auto: create
+
+    show-sql: true

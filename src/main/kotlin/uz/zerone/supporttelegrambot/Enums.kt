@@ -9,7 +9,8 @@ enum class Role {
     USER, ADMIN, OPERATOR
 }
 
-enum class Language {
+enum class LanguageEnum {
+
     UZ, ENG, RU
 }
 
