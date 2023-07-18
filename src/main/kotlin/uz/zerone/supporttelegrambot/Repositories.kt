@@ -55,33 +55,32 @@ interface UserRepository : BaseRepository<User> {
     fun findByTelegramId(telegramId: String): User
 
 
-    @Query(value = "select u.*\n" +
-            "from users u\n" +
-            "         join users_language ul on u.id = ul.users_id\n" +
-            "         join language l on l.id = ul.language_list_id\n" +
-            "where u.role = :role\n" +
-            "  and l.language_enum = :languageName", nativeQuery = true)
-    fun findByOnlineTrueAndRoleAndLanguageListContains(role: Role, languageName: String):MutableList<User>
-    fun findByTelegramIdAndDeletedFalse(telegramId: String):User
-    fun existsByTelegramIdAndDeletedFalse(telegramId: String):Boolean
+    @Query(
+        value = "select u.*\n" +
+                "from users u\n" +
+                "         join users_language ul on u.id = ul.users_id\n" +
+                "         join language l on l.id = ul.language_list_id\n" +
+                "where u.role = :role\n" +
+                "  and l.language_enum = :languageName", nativeQuery = true
+    )
+    fun findByOnlineTrueAndRoleAndLanguageListContains(role: String, languageName: String): MutableList<User>
+    fun findByTelegramIdAndDeletedFalse(telegramId: String): User
+    fun existsByTelegramIdAndDeletedFalse(telegramId: String): Boolean
 }
 
 interface SessionRepository : BaseRepository<Session> {
-    fun findByUserIdAndOperatorId(user_id: Long, operator_id: Long):Optional<Session>
+    fun findByUserIdAndOperatorId(user_id: Long, operator_id: Long): Optional<Session>
 }
 
 interface MessageRepository : BaseRepository<Message> {
-
+    fun findByTelegramMessageIdAndDeletedFalse(telegramMessageId: Int): Message
 }
 
 interface FileRepository : BaseRepository<File> {
 
 }
 
-interface ContentRepository : BaseRepository<Content> {
-
-}
 
 interface LanguageRepository : BaseRepository<Language> {
-    fun findByLanguageEnum(languageEnum: LanguageEnum): Language
+    fun findByLanguageEnumAndDeletedFalse(languageEnum: LanguageEnum): Language
 }
