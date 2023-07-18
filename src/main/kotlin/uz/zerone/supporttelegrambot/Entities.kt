@@ -6,6 +6,7 @@ package uz.zerone.supporttelegrambot
 Created by Akhmadali
  */
 
+
 import org.hibernate.annotations.ColumnDefault
 import org.springframework.data.annotation.CreatedDate
 import org.springframework.data.annotation.LastModifiedDate
@@ -14,23 +15,31 @@ import java.util.*
 import javax.persistence.*
 
 @MappedSuperclass
-open class BaseEntity(
+class BaseEntity(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) var id: Long? = null,
     @CreatedDate @Temporal(TemporalType.TIMESTAMP) var createdDate: Date? = null,
     @LastModifiedDate @Temporal(TemporalType.TIMESTAMP) var modifiedDate: Date? = null,
     @Column(nullable = false) @ColumnDefault(value = "false") var deleted: Boolean = false,
 )
 
+@Entity
+class Language(
+    @Enumerated(EnumType.STRING)
+    val languageEnum: LanguageEnum
+) : BaseEntity()
+
 @Entity(name = "users")
 class User(
+    @Column(unique = true)
     var telegramId: String,
+    @Column(unique = true)
     var username: String?,
-    var phoneNumber: String,
+    var phoneNumber: String?,
     @Enumerated(EnumType.STRING)
     var role: Role,
     var online: Boolean,
-    @Enumerated(EnumType.STRING)
-    var language: Language
+    @ManyToMany
+    val languageList: List<Language>
 ) : BaseEntity()
 
 @Entity
@@ -42,7 +51,7 @@ class Session(
 
 @Entity
 class Message(
-    var telegramMessageId: String,
+    var telegramMessageId: Int,
     @ManyToOne val session: Session,
     @ManyToOne val sender: User,
     var messageType: MessageType,

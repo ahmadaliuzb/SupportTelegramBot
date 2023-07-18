@@ -1,14 +1,13 @@
-#bot:
-#  username: https://t.me/session_support_bot
-#  token: 6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s
 server:
   port: 8890
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/learning
+    url: jdbc:postgresql://localhost:5432/support_bot
     username: postgres
-    password: 1234
+    password: root123
+
+
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
@@ -22,3 +21,5 @@ spring:
       naming:
         implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyComponentPathImpl
       ddl-auto: create
+
+    show-sql: true
