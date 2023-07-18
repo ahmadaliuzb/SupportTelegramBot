@@ -32,9 +32,9 @@ class MessageService() {
     fun generateInlineMarkup(user: User): InlineKeyboardMarkup {
         var markup = InlineKeyboardMarkup()
         var inKeyboardButton = InlineKeyboardButton()
-        if (user.botState == BotState.CHOOSE_LANGUAGE) {
+        if (user.botStep == BotStep.CHOOSE_LANGUAGE) {
 
-        } else if (user.botState == BotState.CHOOSE_LANGUAGE) {
+        } else if (user.botStep == BotStep.CHOOSE_LANGUAGE) {
         }
         return  markup
     }
@@ -44,7 +44,7 @@ class MessageService() {
         val rowList = mutableListOf<KeyboardRow>()
         val row1 = KeyboardRow()
         val row1Button1 = KeyboardButton()
-        if (user.botState == BotState.ONLINE && user.role == Role.OPERATOR) {
+        if (user.botStep == BotStep.ONLINE && user.role == Role.OPERATOR) {
             val row2 = KeyboardRow()
             row1Button1.text = "Close"
             val row1Button2 = KeyboardButton()
@@ -53,7 +53,7 @@ class MessageService() {
             row2.add(row1Button2)
             rowList.add(row1)
             rowList.add(row2)
-        } else if (user.botState == BotState.OFFLINE && user.role == Role.OPERATOR) {
+        } else if (user.botStep == BotStep.OFFLINE && user.role == Role.OPERATOR) {
             row1Button1.text = "OFF"
             val row1Button2 = KeyboardButton()
             row1Button2.text="ON"
