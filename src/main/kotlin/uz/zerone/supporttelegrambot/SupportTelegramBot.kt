@@ -9,29 +9,50 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRem
 
 @Service
 class SupportTelegramBot(
-
-    private val messageService: MessageService
+    private val messageService: MessageService,
+    private val userService: UserService
 ) : TelegramLongPollingBot() {
 
-    override fun getBotUsername(): String = "zeroone4bot"
+    override fun getBotUsername(): String = "session_support_bot"
 
-    override fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
+    override fun getBotToken() = "6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s"
 
     override fun onUpdateReceived(update: Update) {
-        if (update.hasMessage()) {
-            if (update.message.hasText()) {
-                if (update.message.text.equals("/start")) {
-                    execute(messageService.start(update))
+        val user = userService.getOrCreateUser(update)
+        when (user.botStep) {
+            BotStep.START -> {
+                if (update.hasMessage()) {
+                    if (update.message.hasText()) {
+                        if (update.message.text.equals("/start")) {
+                            execute(messageService.start(update))
+                        }
+                    }
                 }
-            } else if (update.message.hasContact()) {
-                execute(messageService.confirmContact(update))
-                deleteReplyMarkup(update.message.chatId.toString())
             }
-        } else if (update.hasCallbackQuery()) {
-            execute(messageService.chooseLanguage(update))
+            BotStep.CHOOSE_LANGUAGE -> {
+                if (update.hasCallbackQuery()) {
+                    execute(messageService.chooseLanguage(update))
+                }
+            }
+            BotStep.SHARE_CONTACT -> {
+                if (update.hasMessage()) {
+                    if (update.message.hasContact()) {
+                        execute(messageService.confirmContact(update))
+                        deleteReplyMarkup(update.message.chatId.toString())
+                    }
+                }
+            }
+            BotStep.ONLINE -> {
+                if(user.role==Role.USER)
+                execute(messageService.createSession(update))
+                else {
+                  //
+                }
+            }
+            BotStep.OFFLINE -> TODO()
+            BotStep.IN_SESSION -> TODO()
+            BotStep.ASSESSMENT -> TODO()
         }
-
-
     }
 
     fun deleteReplyMarkup(chatId: String) {
@@ -43,6 +64,7 @@ class SupportTelegramBot(
         val message = execute(sendMessage)
         execute(DeleteMessage(chatId, message.messageId))
     }
+
 }
 
 

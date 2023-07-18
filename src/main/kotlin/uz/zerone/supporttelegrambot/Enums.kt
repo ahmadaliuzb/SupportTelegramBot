@@ -19,8 +19,11 @@ enum class MessageType {
 }
 
 enum class BotStep{
+    START,
     CHOOSE_LANGUAGE,
+    SHARE_CONTACT,
     OFFLINE,
     ONLINE,
     IN_SESSION,
+    ASSESSMENT
 }
