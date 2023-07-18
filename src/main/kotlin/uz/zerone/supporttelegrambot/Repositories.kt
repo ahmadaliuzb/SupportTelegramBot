@@ -6,10 +6,12 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor
+import org.springframework.data.jpa.repository.Query
 import org.springframework.data.jpa.repository.support.JpaEntityInformation
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository
 import org.springframework.data.repository.NoRepositoryBean
 import org.springframework.data.repository.findByIdOrNull
+import java.util.Optional
 import javax.persistence.EntityManager
 import javax.transaction.Transactional
 
@@ -51,10 +53,21 @@ class BaseRepositoryImpl<T : BaseEntity>(
 interface UserRepository : BaseRepository<User> {
     fun existsByUsername(username: String)
     fun findByTelegramId(telegramId: String): User
+
+
+    @Query(value = "select u.*\n" +
+            "from users u\n" +
+            "         join users_language ul on u.id = ul.users_id\n" +
+            "         join language l on l.id = ul.language_list_id\n" +
+            "where u.role = :role\n" +
+            "  and l.language_enum = :languageName", nativeQuery = true)
+    fun findByOnlineTrueAndRoleAndLanguageListContains(role: Role, languageName: String):MutableList<User>
+    fun findByTelegramIdAndDeletedFalse(telegramId: String):User
+    fun existsByTelegramIdAndDeletedFalse(telegramId: String):Boolean
 }
 
 interface SessionRepository : BaseRepository<Session> {
-
+    fun findByUserIdAndOperatorId(user_id: Long, operator_id: Long):Optional<Session>
 }
 
 interface MessageRepository : BaseRepository<Message> {

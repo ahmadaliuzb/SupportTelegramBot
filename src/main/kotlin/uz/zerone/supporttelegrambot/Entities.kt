@@ -34,19 +34,23 @@ class User(
     var telegramId: String,
     @Column(unique = true)
     var username: String?,
+    @Column(unique = true)
     var phoneNumber: String?,
+    @Enumerated(EnumType.STRING)
+    var botStep: BotStep,
     @Enumerated(EnumType.STRING)
     var role: Role,
     var online: Boolean,
     @ManyToMany
-    val languageList: List<Language>
+    val languageList: MutableList<Language>?
 ) : BaseEntity()
 
 @Entity
 class Session(
     @ManyToOne val user: User,
-    @ManyToOne val operator: User,
-    var active: Boolean
+    @ManyToOne val operator: User?,
+    var active: Boolean,
+    var assessment:Int?
 ) : BaseEntity()
 
 @Entity
