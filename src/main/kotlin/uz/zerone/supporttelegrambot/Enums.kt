@@ -15,7 +15,7 @@ enum class LanguageEnum {
 }
 
 enum class MessageType {
-    VIDEO, AUDIO, PHOTO, DOCUMENT
+    VIDEO, AUDIO, PHOTO, DOCUMENT,TEXT
 }
 
 enum class BotStep{
@@ -26,4 +26,15 @@ enum class BotStep{
     ONLINE,
     IN_SESSION,
     ASSESSMENT
+}
+
+enum class ContentType{
+    DOCUMENT,
+    VIDEO,
+    AUDIO,
+    ANIMATION,
+    VIDEO_NOTE,
+    PHOTO,
+    VOICE,
+    STICKER
 }

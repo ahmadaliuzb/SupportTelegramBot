@@ -1,24 +1,31 @@
 package uz.zerone.supporttelegrambot
 
 import org.springframework.stereotype.Service
+import org.springframework.web.client.RestTemplate
+import org.springframework.web.client.getForObject
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
+import org.telegram.telegrambots.meta.api.methods.GetFile
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove
+import java.io.File
+import java.io.FileOutputStream
 
 @Service
 class SupportTelegramBot(
     private val messageService: MessageService,
-    private val userService: UserService
+    private val userService: UserService,
+    private val fileService: FileService
 ) : TelegramLongPollingBot() {
 
-    override fun getBotUsername(): String = "session_support_bot"
+    override fun getBotUsername(): String = "zeroone4bot"
 
     override fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
 
     override fun onUpdateReceived(update: Update) {
         val user = userService.getOrCreateUser(update)
+
         when (user.botStep) {
             BotStep.START -> {
                 if (update.hasMessage()) {
@@ -29,11 +36,13 @@ class SupportTelegramBot(
                     }
                 }
             }
+
             BotStep.CHOOSE_LANGUAGE -> {
                 if (update.hasCallbackQuery()) {
                     execute(messageService.chooseLanguage(update))
                 }
             }
+
             BotStep.SHARE_CONTACT -> {
                 if (update.hasMessage()) {
                     if (update.message.hasContact()) {
@@ -42,83 +51,27 @@ class SupportTelegramBot(
                     }
                 }
             }
+
             BotStep.ONLINE -> {
-                if(user.role==Role.USER)
-                execute(messageService.createSession(update))
+                if (user.role == Role.USER)
+                    execute(messageService.createSession(update))
                 else {
-                  //
+                    //
                 }
             }
+
             BotStep.OFFLINE -> TODO()
-            BotStep.IN_SESSION -> TODO()
+            BotStep.IN_SESSION -> {
+                if (update.hasMessage()) {
+                    saveMessageAndFile(update)
+
+                }
+            }
+
             BotStep.ASSESSMENT -> TODO()
 
-            //save file
-            //for document
-
-            else if (update.message.hasDocument()) {
-                saveFileToDisk(
-                    update.message.document.fileName, getFromTelegram(update.message.document.fileId, botToken)
-                )
-
-            }
-            //for video
-            else if (update.message.hasVideo()) {
-                saveFileToDisk(
-                    update.message.video.fileName, getFromTelegram(update.message.video.fileId, botToken)
-                )
-            }
-            //for audio
-            else if (update.message.hasAudio()) {
-                saveFileToDisk(
-                    update.message.audio.fileName, getFromTelegram(update.message.audio.fileId, botToken)
-                )
-            }
-            //for videoNote
-            else if (update.message.hasVideoNote()) {
-                saveFileToDisk(
-                    "${update.message.videoNote.fileUniqueId}.mp4",
-                    getFromTelegram(update.message.videoNote.fileId, botToken)
-                )
-            }
-
-            //for photo
-            else if (update.message.hasPhoto()) {
-                val photos = update.message.photo
-                for (photo in photos) {
-                    saveFileToDisk(
-                        photo.fileUniqueId, getFromTelegram(photo.fileId, botToken)
-                    )
-                }
-
-            }
-
-            //for animation
-            else if (update.message.hasAnimation()) {
-                saveFileToDisk(
-                    update.message.animation.fileUniqueId, getFromTelegram(update.message.animation.fileId, botToken)
-                )
-            }
-
-            //for voice
-            else if (update.message.hasVoice()) {
-                saveFileToDisk(
-                    "${update.message.voice.fileUniqueId}.ogg", getFromTelegram(update.message.voice.fileId, botToken)
-                )
-            }
-
-            //for sticker
-            else if (update.message.hasSticker()) {
-                saveFileToDisk(
-                    "${update.message.sticker.fileUniqueId}.webp",
-                    getFromTelegram(update.message.sticker.fileId, botToken)
-                )
-            }
-
-
-        } else if (update.hasCallbackQuery()) {
-            execute(messageService.chooseLanguage(update))
         }
+
     }
 
     fun deleteReplyMarkup(chatId: String) {
@@ -135,7 +88,97 @@ class SupportTelegramBot(
         RestTemplate().getForObject<ByteArray>("https://api.telegram.org/file/bot${token}/${filePath}")
     }
 
+    fun saveMessageAndFile(update: Update) {
+        //save file
+        //for document
 
+        messageService.createMessage(update)
+
+        if (update.message.hasDocument()) {
+            update.message.document.run {
+                saveFileToDisk(
+                    fileName, getFromTelegram(fileId, botToken)
+                )
+                fileService.createFile(update, fileName, ContentType.DOCUMENT)
+
+            }
+        }
+
+        //for video
+        else if (update.message.hasVideo()) {
+            update.message.video.run {
+                saveFileToDisk(
+                    fileName, getFromTelegram(fileId, botToken)
+                )
+                fileService.createFile(update, fileName, ContentType.VIDEO)
+
+            }
+        }
+        //for audio
+        else if (update.message.hasAudio()) {
+            update.message.audio.run {
+                saveFileToDisk(
+                    fileName, getFromTelegram(fileId, botToken)
+                )
+                fileService.createFile(update, fileName, ContentType.AUDIO)
+
+            }
+        }
+        //for videoNote
+        else if (update.message.hasVideoNote()) {
+            update.message.videoNote.run {
+                saveFileToDisk(
+                    "${fileUniqueId}.mp4", getFromTelegram(fileId, botToken)
+                )
+                fileService.createFile(update, fileUniqueId, ContentType.VIDEO_NOTE)
+            }
+        }
+
+        //for photo
+        else if (update.message.hasPhoto()) {
+            val photos = update.message.photo
+            for (photo in photos) {
+                photo.run {
+                    saveFileToDisk(
+                        fileUniqueId, getFromTelegram(fileId, botToken)
+                    )
+                    fileService.createFile(update, fileUniqueId, ContentType.PHOTO)
+                }
+            }
+
+        }
+
+        //for animation
+        else if (update.message.hasAnimation()) {
+            update.message.animation.run {
+                saveFileToDisk(
+                    "${fileUniqueId}.gif", getFromTelegram(fileId, botToken)
+                )
+                fileService.createFile(update, fileUniqueId, ContentType.ANIMATION)
+            }
+        }
+
+        //for voice
+        else if (update.message.hasVoice()) {
+            update.message.voice.run {
+                saveFileToDisk(
+                    "${fileUniqueId}.ogg", getFromTelegram(fileId, botToken)
+                )
+                fileService.createFile(update, fileUniqueId, ContentType.VOICE)
+            }
+        }
+
+        //for sticker
+        else if (update.message.hasSticker()) {
+            update.message.sticker.run {
+                saveFileToDisk(
+                    "${fileUniqueId}.webp", getFromTelegram(fileId, botToken)
+                )
+                fileService.createFile(update, fileUniqueId, ContentType.STICKER)
+            }
+        }
+
+    }
 
 
 }
