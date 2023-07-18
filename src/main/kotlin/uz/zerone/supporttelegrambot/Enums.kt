@@ -25,6 +25,7 @@ enum class BotStep{
     OFFLINE,
     ONLINE,
     IN_SESSION,
+    FULL_SESSION,
     ASSESSMENT
 }
 

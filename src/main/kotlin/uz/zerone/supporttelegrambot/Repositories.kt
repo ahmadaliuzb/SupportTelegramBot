@@ -68,14 +68,17 @@ interface UserRepository : BaseRepository<User> {
 
 interface SessionRepository : BaseRepository<Session> {
     fun findByUserIdAndOperatorId(user_id: Long, operator_id: Long): Optional<Session>
+    fun findByUserTelegramIdAndActiveTrue(user_telegramId: String):Session
+    fun findByActiveTrueAndOperatorIsNull():MutableList<Session>
 }
 
 interface MessageRepository : BaseRepository<Message> {
     fun findByTelegramMessageIdAndDeletedFalse(telegramMessageId: Int): Message
+    fun findBySessionIdAndDeletedFalse(session_id: Long):MutableList<Message>
 }
 
 interface FileRepository : BaseRepository<File> {
-
+    fun findByMessageId(message_id: Long):File
 }
 
 

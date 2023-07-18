@@ -5,8 +5,15 @@ import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.getForObject
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.api.methods.GetFile
+import org.telegram.telegrambots.meta.api.methods.send.SendAnimation
+import org.telegram.telegrambots.meta.api.methods.send.SendAudio
+import org.telegram.telegrambots.meta.api.methods.send.SendDocument
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto
+import org.telegram.telegrambots.meta.api.methods.send.SendSticker
 import org.telegram.telegrambots.meta.api.methods.send.SendVideo
+import org.telegram.telegrambots.meta.api.methods.send.SendVideoNote
+import org.telegram.telegrambots.meta.api.methods.send.SendVoice
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Update
@@ -18,14 +25,26 @@ import java.io.FileOutputStream
 class SupportTelegramBot(
     private val messageService: MessageService,
     private val userService: UserService,
-    private val fileService: FileService
+    private val fileService: FileService,
+    private val sessionRepository: SessionRepository,
+    private val userRepository: UserRepository,
+    private val messageRepository: MessageRepository,
+    private val messageHandler: MessageHandler,
+    private val fileRepository: FileRepository,
+    private val callbackQueryHandler: CallbackQueryHandler,
+    private val sessionService: SessionService
 ) : TelegramLongPollingBot() {
 
-    override fun getBotUsername(): String = "zeroone4bot"
+    override fun getBotUsername(): String = "session_support_bot"
 
-    override fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
+    override fun getBotToken() = "6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s"
 
     override fun onUpdateReceived(update: Update) {
+//        when{
+//            update.hasCallbackQuery() -> callbackQueryHandler.handle(update.callbackQuery,this)
+//            update.hasMessage() -> messageHandler.handle(update.message,this)
+//        }
+
         val user = userService.getOrCreateUser(update)
 
         when (user.botStep) {
@@ -55,17 +74,56 @@ class SupportTelegramBot(
             }
 
             BotStep.ONLINE -> {
-                if (user.role == Role.USER)
+                if (user.role == Role.USER) {
                     saveMessageAndFile(update)
-                    execute(messageService.createSession(update))
-
+                    createSession(update)
+                } else if (user.role == Role.OPERATOR) {
+                    if (update.hasMessage() && update.message.text == "OFF") {
+                        val chatId = getChatId(update)
+                        val operator = userRepository.findByTelegramIdAndDeletedFalse(chatId)
+                        operator.online = false
+                        operator.botStep = BotStep.OFFLINE
+                        userRepository.save(operator)
+                        execute(SendMessage(chatId, "You are offline"))
+                    }
+                }
             }
 
-            BotStep.OFFLINE -> TODO()
+            BotStep.OFFLINE -> {
+                if (update.hasMessage() && update.message.text == "OFF") {
+                    findWaitingUsers(update)
+                }
+            }
+
             BotStep.IN_SESSION -> {
                 if (update.hasMessage()) {
                     saveMessageAndFile(update)
+                }
+            }
 
+            BotStep.FULL_SESSION -> {
+                if (update.hasMessage()) {
+                    if (user.role == Role.USER) {
+                        saveMessageAndFileAndExecute(update,false)
+                    }
+                    else if (user.role == Role.OPERATOR) {
+                        when (update.message.text) {
+                            "Close" -> {
+                                findWaitingUsers(update)
+                            }
+                            "Close and OFF" -> {
+                                val chatId = getChatId(update)
+                                val operator = userRepository.findByTelegramIdAndDeletedFalse(chatId)
+                                operator.online = false
+                                operator.botStep = BotStep.OFFLINE
+                                userRepository.save(operator)
+                                execute(SendMessage(chatId, "You are offline"))
+                            }
+                            else -> {
+                                saveMessageAndFileAndExecute(update,true)
+                            }
+                        }
+                    }
                 }
             }
 
@@ -74,6 +132,185 @@ class SupportTelegramBot(
         }
 
     }
+
+    fun findWaitingUsers(update: Update) {
+        val chatId = getChatId(update)
+        val operator = userRepository.findByTelegramIdAndDeletedFalse(chatId)
+        val sessionsList = sessionRepository.findByActiveTrueAndOperatorIsNull()
+
+        operator.botStep = BotStep.ONLINE
+        operator.online = true
+
+        for (session in sessionsList) {
+            if (operator.languageList?.contains(session.user.languageList?.get(0)) == true) {
+                val messages = session.id?.let { messageRepository.findBySessionIdAndDeletedFalse(it) }
+                messages?.forEach {
+                    when (it.messageType) {
+                        MessageType.VIDEO -> {
+                            val file = it.id?.let { id -> fileRepository.findByMessageId(id) }
+                            val sendVideo =
+                                SendVideo(chatId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file?.name}")))
+                            execute(sendVideo)
+                        }
+
+                        MessageType.AUDIO -> {
+                            val file = it.id?.let { id -> fileRepository.findByMessageId(id) }
+                            val sendAudio =
+                                SendAudio(chatId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file?.name}")))
+                            execute(sendAudio)
+                        }
+
+                        MessageType.PHOTO -> {
+                            val file = it.id?.let { id -> fileRepository.findByMessageId(id) }
+                            val sendPhoto =
+                                SendPhoto(chatId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file?.name}")))
+                            execute(sendPhoto)
+                        }
+
+                        MessageType.DOCUMENT -> {
+                            val file = it.id?.let { id -> fileRepository.findByMessageId(id) }
+                            val sendDocument =
+                                SendDocument(chatId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file?.name}")))
+                            execute(sendDocument)
+                        }
+
+                        MessageType.TEXT -> {
+                            val sendMessage = it.text?.let { text -> SendMessage(chatId, text) }
+                            execute(sendMessage)
+                        }
+                    }
+                }
+                operator.botStep = BotStep.FULL_SESSION
+                break
+            }
+        }
+        userRepository.save(operator)
+    }
+
+    private fun saveMessageAndFileAndExecute(update: Update,operator:Boolean) {
+
+        val chatId = getChatId(update)
+        val session = sessionRepository.findByUserTelegramIdAndActiveTrue(chatId)
+        val telegramId:String = if (operator) session.user.telegramId
+        else session.operator?.telegramId.toString()
+        messageService.createMessage(update)
+
+        when {
+            update.message.hasDocument() -> {
+                val file = update.message.document.run {
+                    saveFileToDisk(
+                        fileName, getFromTelegram(fileId, botToken)
+                    )
+                    fileService.createFile(update, fileName, ContentType.DOCUMENT)
+                }
+                val sendDocument = SendDocument(
+                    telegramId,
+                    InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                )
+                execute(sendDocument)
+            }
+
+            update.message.hasVideo() -> {
+                val file = update.message.video.run {
+                    saveFileToDisk(
+                        fileName, getFromTelegram(fileId, botToken)
+                    )
+                    fileService.createFile(update, fileName, ContentType.VIDEO)
+                }
+                val sendVideo =
+                    SendVideo(telegramId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}")))
+                execute(sendVideo)
+            }
+
+            update.message.hasAudio() -> {
+                val file = update.message.audio.run {
+                    saveFileToDisk(
+                        fileName, getFromTelegram(fileId, botToken)
+                    )
+                    fileService.createFile(update, fileName, ContentType.AUDIO)
+                }
+                val sendAudio =
+                    SendAudio(telegramId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}")))
+                execute(sendAudio)
+            }
+
+            update.message.hasVideoNote() -> {
+                val file = update.message.videoNote.run {
+                    saveFileToDisk(
+                        "${fileUniqueId}.mp4", getFromTelegram(fileId, botToken)
+                    )
+                    fileService.createFile(update, "${fileUniqueId}.mp4", ContentType.VIDEO_NOTE)
+                }
+                val sendVideoNote = SendVideoNote(
+                    telegramId,
+                    InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                )
+                execute(sendVideoNote)
+            }
+
+            update.message.hasPhoto() -> {
+                val photos = update.message.photo
+                for (photo in photos) {
+                    val file = photo.run {
+                        saveFileToDisk(
+                            fileUniqueId, getFromTelegram(fileId, botToken)
+                        )
+                        fileService.createFile(update, fileUniqueId, ContentType.PHOTO)
+                    }
+                    val sendPhoto = SendPhoto(
+                        telegramId,
+                        InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                    )
+                    execute(sendPhoto)
+                }
+            }
+
+            update.message.hasAnimation() -> {
+                val file = update.message.animation.run {
+                    saveFileToDisk(
+                        "${fileUniqueId}.gif", getFromTelegram(fileId, botToken)
+                    )
+                    fileService.createFile(update, "${fileUniqueId}.gif", ContentType.ANIMATION)
+                }
+                val sendAnimation = SendAnimation(
+                    telegramId,
+                    InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                )
+                execute(sendAnimation)
+            }
+
+            update.message.hasVoice() -> {
+                val file = update.message.voice.run {
+                    saveFileToDisk(
+                        "${fileUniqueId}.ogg", getFromTelegram(fileId, botToken)
+                    )
+                    fileService.createFile(update, "${fileUniqueId}.ogg", ContentType.VOICE)
+                }
+
+                val sendVoice =
+                    SendVoice(telegramId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}")))
+                execute(sendVoice)
+            }
+
+            update.message.hasSticker() -> {
+                val file = update.message.voice.run {
+                    saveFileToDisk(
+                        "${fileId}.ogg", getFromTelegram(fileId, botToken)
+                    )
+                    fileService.createFile(update, "${fileId}.ogg", ContentType.VOICE)
+                }
+                val sendSticker =
+                    SendSticker(telegramId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}")))
+                execute(sendSticker)
+            }
+
+            else -> {
+                val sendMessage = SendMessage(telegramId, update.message.text)
+                execute(sendMessage)
+            }
+        }
+    }
+
 
     fun deleteReplyMarkup(chatId: String) {
         val sendMessage = SendMessage(
@@ -92,9 +329,8 @@ class SupportTelegramBot(
     fun saveMessageAndFile(update: Update) {
         //save file
         //for document
-        val chatId = getChatId(update)
+
         messageService.createMessage(update)
-        val  sendMessage = SendMessage(chatId,update.message.text)
 
         if (update.message.hasDocument()) {
             update.message.document.run {
@@ -102,7 +338,6 @@ class SupportTelegramBot(
                     fileName, getFromTelegram(fileId, botToken)
                 )
                 fileService.createFile(update, fileName, ContentType.DOCUMENT)
-
             }
         }
 
@@ -179,7 +414,36 @@ class SupportTelegramBot(
         }
     }
 
-
+    fun createSession(update: Update) {
+        messageService.createMessage(update)
+        val user = userService.getOrCreateUser(update)
+        user.languageList?.let {
+            val operatorList =
+                userRepository.findByOnlineTrueAndRoleAndLanguageListContains(
+                    Role.OPERATOR.name,
+                    it[0].languageEnum.name
+                )
+            if (operatorList.isEmpty()) {
+                sessionRepository.save(Session(user, null, true, null))
+                val sendMessage = SendMessage(user.telegramId, "Soon Operator will connect with you. Please wait!")
+                execute(sendMessage)
+                user.botStep = BotStep.IN_SESSION
+            } else {
+                val operator = operatorList[0]
+                sessionService.getOrCreateSession(user, operator)
+                operator.botStep = BotStep.FULL_SESSION
+                user.botStep = BotStep.FULL_SESSION
+                userRepository.save(operator)
+                var sendMessage = SendMessage(user.telegramId, "You are connected with Operator")
+                execute(sendMessage)
+                sendMessage = SendMessage(operator.telegramId,"You are connected with User")
+                execute(sendMessage)
+                sendMessage = SendMessage(operator.telegramId,update.message.text)
+                execute(sendMessage)
+            }
+            userRepository.save(user)
+        }
+    }
 
 }
 

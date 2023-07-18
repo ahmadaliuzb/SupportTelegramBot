@@ -165,27 +165,7 @@ class MessageService(
         return markup
     }
 
-    fun createSession(update: Update): SendMessage {
-        val user = userService.getOrCreateUser(update)
-        var sendMessage = SendMessage()
-        user.languageList?.let {
-            val operatorList =
-                userRepository.findByOnlineTrueAndRoleAndLanguageListContains(Role.OPERATOR.name, it[0].languageEnum.name)
-            if (operatorList.isEmpty()) {
-                sessionRepository.save(Session(user, null, true, null))
-                sendMessage = SendMessage(user.telegramId, "Soon Operator will connect with you. Please wait!")
-            } else {
-                val operator = operatorList[0]
-                sessionService.getOrCreateSession(user, operator)
-                operator.botStep = BotStep.IN_SESSION
-                userRepository.save(user)
-                sendMessage = SendMessage(user.telegramId, "You are connected with Operator")
-            }
-            user.botStep = BotStep.IN_SESSION
-            userRepository.save(user)
-        }
-        return sendMessage
-    }
+
 
     fun createMessage(update: Update) {
             val telegramId = update.message.from.id
@@ -264,14 +244,14 @@ class FileService(
     private val messageRepository: MessageRepository,
     private val messageService: MessageService
 ) {
-    fun createFile(update: Update, name: String, contentType: ContentType) {
+    fun createFile(update: Update, name: String, contentType: ContentType):File {
         val message =
             messageRepository.findByTelegramMessageIdAndDeletedFalse(update.message.messageId)
 
         val file = File(
             name, contentType, message
         )
-        fileRepository.save(file)
+       return fileRepository.save(file)
     }
 
 }
