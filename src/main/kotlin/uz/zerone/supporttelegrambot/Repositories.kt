@@ -61,7 +61,7 @@ interface UserRepository : BaseRepository<User> {
             "         join language l on l.id = ul.language_list_id\n" +
             "where u.role = :role\n" +
             "  and l.language_enum = :languageName", nativeQuery = true)
-    fun findByOnlineTrueAndRoleAndLanguageListContains(role: Role, languageName: String):MutableList<User>
+    fun findByOnlineTrueAndRoleAndLanguageListContains(role: String, languageName: String):MutableList<User>
     fun findByTelegramIdAndDeletedFalse(telegramId: String):User
     fun existsByTelegramIdAndDeletedFalse(telegramId: String):Boolean
 }

@@ -168,7 +168,7 @@ class MessageService(
         var sendMessage = SendMessage()
         user.languageList?.let {
             val operatorList =
-                userRepository.findByOnlineTrueAndRoleAndLanguageListContains(Role.OPERATOR, it[0].languageEnum.name)
+                userRepository.findByOnlineTrueAndRoleAndLanguageListContains(Role.OPERATOR.name, it[0].languageEnum.name)
             if (operatorList.isEmpty()) {
                 sessionRepository.save(Session(user, null, true, null))
                 sendMessage = SendMessage(user.telegramId, "Soon Operator will connect with you. Please wait!")
