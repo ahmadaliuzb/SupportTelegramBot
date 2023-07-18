@@ -6,7 +6,9 @@ import org.springframework.web.client.getForObject
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.api.methods.GetFile
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
+import org.telegram.telegrambots.meta.api.methods.send.SendVideo
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
+import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove
 import java.io.File
@@ -54,10 +56,9 @@ class SupportTelegramBot(
 
             BotStep.ONLINE -> {
                 if (user.role == Role.USER)
+                    saveMessageAndFile(update)
                     execute(messageService.createSession(update))
-                else {
-                    //
-                }
+
             }
 
             BotStep.OFFLINE -> TODO()
@@ -91,8 +92,9 @@ class SupportTelegramBot(
     fun saveMessageAndFile(update: Update) {
         //save file
         //for document
-
+        val chatId = getChatId(update)
         messageService.createMessage(update)
+        val  sendMessage = SendMessage(chatId,update.message.text)
 
         if (update.message.hasDocument()) {
             update.message.document.run {
@@ -111,7 +113,6 @@ class SupportTelegramBot(
                     fileName, getFromTelegram(fileId, botToken)
                 )
                 fileService.createFile(update, fileName, ContentType.VIDEO)
-
             }
         }
         //for audio
@@ -121,7 +122,6 @@ class SupportTelegramBot(
                     fileName, getFromTelegram(fileId, botToken)
                 )
                 fileService.createFile(update, fileName, ContentType.AUDIO)
-
             }
         }
         //for videoNote
@@ -177,8 +177,8 @@ class SupportTelegramBot(
                 fileService.createFile(update, fileUniqueId, ContentType.STICKER)
             }
         }
-
     }
+
 
 
 }

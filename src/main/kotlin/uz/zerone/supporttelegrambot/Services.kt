@@ -191,7 +191,6 @@ class MessageService(
     }
 
     fun createMessage(update: Update) {
-        if (update.message.hasText()) {
             val telegramId = update.message.from.id
             val user = userRepository.findByTelegramId(telegramId.toString())
 
@@ -207,9 +206,6 @@ class MessageService(
 
             val saveMessage = Message(null, messageId, null, user, MessageType.TEXT, true, update.message.text)
             messageRepository.save(saveMessage)
-
-        }
-
     }
 
 }
