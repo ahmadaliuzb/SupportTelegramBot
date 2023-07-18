@@ -1,37 +1,57 @@
 package uz.zerone.supporttelegrambot
 
 import org.springframework.stereotype.Service
-import org.springframework.web.client.RestTemplate
-import org.springframework.web.client.getForObject
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
-import org.telegram.telegrambots.meta.api.methods.GetFile
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove
-import java.io.File
-import java.io.FileOutputStream
 
 @Service
 class SupportTelegramBot(
-
-    private val messageService: MessageService
+    private val messageService: MessageService,
+    private val userService: UserService
 ) : TelegramLongPollingBot() {
 
-    override fun getBotUsername(): String = "zeroone4bot"
+    override fun getBotUsername(): String = "session_support_bot"
 
     override fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
 
     override fun onUpdateReceived(update: Update) {
-        if (update.hasMessage()) {
-            if (update.message.hasText()) {
-                if (update.message.text.equals("/start")) {
-                    execute(messageService.start(update))
+        val user = userService.getOrCreateUser(update)
+        when (user.botStep) {
+            BotStep.START -> {
+                if (update.hasMessage()) {
+                    if (update.message.hasText()) {
+                        if (update.message.text.equals("/start")) {
+                            execute(messageService.start(update))
+                        }
+                    }
                 }
-            } else if (update.message.hasContact()) {
-                execute(messageService.confirmContact(update))
-                deleteReplyMarkup(update.message.chatId.toString())
             }
+            BotStep.CHOOSE_LANGUAGE -> {
+                if (update.hasCallbackQuery()) {
+                    execute(messageService.chooseLanguage(update))
+                }
+            }
+            BotStep.SHARE_CONTACT -> {
+                if (update.hasMessage()) {
+                    if (update.message.hasContact()) {
+                        execute(messageService.confirmContact(update))
+                        deleteReplyMarkup(update.message.chatId.toString())
+                    }
+                }
+            }
+            BotStep.ONLINE -> {
+                if(user.role==Role.USER)
+                execute(messageService.createSession(update))
+                else {
+                  //
+                }
+            }
+            BotStep.OFFLINE -> TODO()
+            BotStep.IN_SESSION -> TODO()
+            BotStep.ASSESSMENT -> TODO()
 
             //save file
             //for document
@@ -99,13 +119,12 @@ class SupportTelegramBot(
         } else if (update.hasCallbackQuery()) {
             execute(messageService.chooseLanguage(update))
         }
-
-
     }
 
     fun deleteReplyMarkup(chatId: String) {
         val sendMessage = SendMessage(
-            chatId, "\uD83D\uDCAB"
+            chatId,
+            "\uD83D\uDCAB"
         )
         sendMessage.replyMarkup = ReplyKeyboardRemove(true)
         val message = execute(sendMessage)
@@ -115,6 +134,7 @@ class SupportTelegramBot(
     fun getFromTelegram(fileId: String, token: String) = execute(GetFile(fileId)).run {
         RestTemplate().getForObject<ByteArray>("https://api.telegram.org/file/bot${token}/${filePath}")
     }
+
 
 
 
