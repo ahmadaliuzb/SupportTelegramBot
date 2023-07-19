@@ -55,29 +55,34 @@ interface UserRepository : BaseRepository<User> {
     fun findByTelegramId(telegramId: String): User
 
 
-    @Query(
-        value = "select u.*\n" +
-                "from users u\n" +
-                "         join users_language ul on u.id = ul.users_id\n" +
-                "         join language l on l.id = ul.language_list_id\n" +
-                "where u.role = :role\n" +
-                "  and l.language_enum = :languageName", nativeQuery = true
-    )
-    fun findByOnlineTrueAndRoleAndLanguageListContains(role: String, languageName: String): MutableList<User>
-    fun findByTelegramIdAndDeletedFalse(telegramId: String): User
-    fun existsByTelegramIdAndDeletedFalse(telegramId: String): Boolean
+    @Query(value = "select u.*\n" +
+            "from users u\n" +
+            "         join users_language ul on u.id = ul.users_id and u.online = true\n" +
+            "         join language l on l.id = ul.language_list_id\n" +
+            "where u.role = :role\n" +
+            "  and l.language_enum = :languageName and u.bot_step =:botStep", nativeQuery = true)
+    fun findByOnlineTrueAndRoleAndLanguageListContains(role: String, languageName: String,botStep: String):MutableList<User>
+    fun findByTelegramIdAndDeletedFalse(telegramId: String):User
+    fun existsByTelegramIdAndDeletedFalse(telegramId: String):Boolean
+    fun findByPhoneNumberAndDeletedFalse(phoneNumber: String):User
 }
 
 interface SessionRepository : BaseRepository<Session> {
     fun findByUserIdAndOperatorId(user_id: Long, operator_id: Long): Optional<Session>
+    fun findByUserTelegramIdAndActiveTrue(user_telegramId: String):Session
+
+    fun findByOperatorTelegramIdAndActiveTrue(operator_telegramId: String):Session
+    fun findByActiveTrueAndOperatorIsNull():MutableList<Session>
 }
 
 interface MessageRepository : BaseRepository<Message> {
     fun findByTelegramMessageIdAndDeletedFalse(telegramMessageId: Int): Message
+    fun findBySessionIdAndDeletedFalse(session_id: Long):MutableList<Message>
+    fun findBySessionIdAndSessionUserId(session_id: Long, session_user_id: Long):MutableList<Message>
 }
 
 interface FileRepository : BaseRepository<File> {
-
+    fun findByMessageId(message_id: Long):File
 }
 
 

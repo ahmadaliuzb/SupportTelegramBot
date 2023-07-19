@@ -5,13 +5,14 @@ spring:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/support_bot
     username: postgres
-    password: ahmadali1976
+    password: root123
 
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
+        enable_lazy_load_no_trans=true:
         temp:
           use_jdbc_metadata_defaults: false
         jdbc:
@@ -23,3 +24,5 @@ spring:
       ddl-auto: create
 
     show-sql: true
+
+
