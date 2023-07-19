@@ -15,7 +15,15 @@ enum class LanguageEnum {
 }
 
 enum class MessageType {
-    VIDEO, AUDIO, PHOTO, DOCUMENT,TEXT
+    DOCUMENT,
+    VIDEO,
+    AUDIO,
+    ANIMATION,
+    VIDEO_NOTE,
+    PHOTO,
+    VOICE,
+    STICKER,
+    TEXT
 }
 
 enum class BotStep{
@@ -38,4 +46,8 @@ enum class ContentType{
     PHOTO,
     VOICE,
     STICKER
+}
+
+enum class ErrorCode(val code: Int){
+    USER_NOT_FOUND(101),
 }

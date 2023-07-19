@@ -41,14 +41,14 @@ class User(
     @Enumerated(EnumType.STRING)
     var role: Role,
     var online: Boolean,
-    @ManyToMany
-    val languageList: MutableList<Language>?
+    @ManyToMany(fetch = FetchType.EAGER)
+    var languageList: MutableList<Language>?
 ) : BaseEntity()
 
 @Entity
 class Session(
     @ManyToOne val user: User,
-    @ManyToOne val operator: User?,
+    @ManyToOne var operator: User?,
     var active: Boolean,
     var assessment: Int?
 ) : BaseEntity()
@@ -58,7 +58,7 @@ class Message(
     @ManyToOne
     var parentMessage: Message?,
     var telegramMessageId: Int,
-    @ManyToOne val session: Session?,
+    @ManyToOne var session: Session,
     @ManyToOne val sender: User,
     var messageType: MessageType,
     var active: Boolean,
