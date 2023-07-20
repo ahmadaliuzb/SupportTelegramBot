@@ -14,9 +14,9 @@ class SupportTelegramBot(
     private val keyboardReplyMarkupHandler: KeyboardReplyMarkupHandler,
 ) : TelegramLongPollingBot() {
 
-    override fun getBotUsername(): String = "zeroone4bot"
+    override fun getBotUsername(): String = "https://t.me/testsuppoertbot"
 
-    override fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
+    override fun getBotToken() = "6170321057:AAGRy6I61dmUBIQMi8JjOvP48eAnTNFnx1g"
 
     override fun onUpdateReceived(update: Update) {
         when {
@@ -43,7 +43,7 @@ class SupportTelegramBot(
             user.role = Role.OPERATOR
             user.botStep=BotStep.OFFLINE
             userRepository.save(user)
-            val sendMessage = SendMessage(user.telegramId,"You have been assigned to the position of operator")
+            val sendMessage = SendMessage(user.telegramId,"You have been assigned to the position of operator ✅")
             sendMessage.replyMarkup=keyboardReplyMarkupHandler.generateReplyMarkup(user)
             execute(sendMessage)
         }

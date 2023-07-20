@@ -31,6 +31,7 @@ enum class BotStep{
     CHOOSE_LANGUAGE,
     SHARE_CONTACT,
     OFFLINE,
+    SHOW_MENU,
     ONLINE,
     IN_SESSION,
     FULL_SESSION,

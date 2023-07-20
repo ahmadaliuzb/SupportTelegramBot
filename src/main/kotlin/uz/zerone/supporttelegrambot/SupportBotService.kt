@@ -54,12 +54,27 @@ class MessageHandlerImpl(
             BotStep.SHARE_CONTACT -> {
                 if (message.hasContact()) {
                     sender.execute(userBotService.confirmContact(message))
+                }
+            }
+
+            BotStep.SHOW_MENU -> {
+                val sendMessage: SendMessage
+                if (message.text == "Savol berish ❓") {
+                    user.botStep = BotStep.ONLINE
+                    userRepository.save(user)
+                    sendMessage = SendMessage(user.telegramId, "You can start messaging")
+                    sender.execute(sendMessage)
                     keyboardReplyMarkupHandler.deleteReplyMarkup(message.chatId.toString(), sender)
+                } else if (message.text == "Sozlamalar ⚙\uFE0F") {
+                    user.botStep = BotStep.CHOOSE_LANGUAGE
+                    userRepository.save(user)
+                    sendMessage = SendMessage(user.telegramId, "Choose languagle❗\uFE0F")
+                    sender.execute(sendLanguageSelection(sendMessage))
                 }
             }
 
             BotStep.OFFLINE -> {
-                if (message.text == "ON") {
+                if (message.text == "ON ✅") {
 
                     user.botStep = BotStep.ONLINE
                     userRepository.save(user)
@@ -106,7 +121,7 @@ class MessageHandlerImpl(
 
                 } else if (user.role == Role.OPERATOR) {
                     when (message.text) {
-                        "Close" -> {
+                        "Close ❌" -> {
 
                             val chatId = userBotService.getChatId(message)
                             val operator = userRepository.findByTelegramIdAndDeletedFalse(chatId)
@@ -146,7 +161,7 @@ class MessageHandlerImpl(
                                 keyboardReplyMarkupHandler.findWaitingUsers(message, sender, sessionsList)
                         }
 
-                        "Close and offline" -> {
+                        "Close and offline ❌" -> {
                             val operator = userRepository.findByTelegramIdAndDeletedFalse(user.telegramId)
                             operator.online = false
                             operator.botStep = BotStep.OFFLINE
@@ -290,6 +305,7 @@ class MessageHandlerImpl(
 @Service
 @Transactional
 class CallbackQueryHandlerImpl(
+    @Lazy
     private val userBotService: UserBotService,
     private val userRepository: UserRepository,
     private val languageRepository: LanguageRepository,
@@ -343,14 +359,18 @@ class CallbackQueryHandlerImpl(
         }
 
         user.languageList?.set(0, languageList[0])
-        user.botStep = BotStep.SHARE_CONTACT
-        userRepository.save(user)
-
-
-        val sendMessage =
-            SendMessage(callbackQuery.message.chatId.toString(), "\uD83D\uDCE9 Please share your contact \uD83D\uDCE9")
-        sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
-
+        val sendMessage: SendMessage
+        if (user.phoneNumber != null) {
+            user.botStep = BotStep.SHOW_MENU
+            userRepository.save(user)
+            sendMessage = SendMessage(user.telegramId, "Kerakli bo`limni tanlang")
+            sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+        } else {
+            user.botStep = BotStep.SHARE_CONTACT
+            userRepository.save(user)
+            sendMessage = SendMessage(callbackQuery.message.chatId.toString(), "Please share your contact")
+            sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+        }
         return sendMessage
 
     }
@@ -360,7 +380,9 @@ class CallbackQueryHandlerImpl(
 @Transactional
 class UserBotService(
     private val userRepository: UserRepository,
-    private val languageRepository: LanguageRepository
+    private val languageRepository: LanguageRepository,
+    @Lazy
+    private val keyboardReplyMarkupHandler: KeyboardReplyMarkupHandler,
 ) {
 
     fun getOrCreateUser(message: Message): User {
@@ -405,11 +427,12 @@ class UserBotService(
     fun getChatId(callbackQuery: CallbackQuery): String = callbackQuery.message.chatId.toString()
 
     fun confirmContact(message: Message): SendMessage {
-        val sendMessage = SendMessage(message.chatId.toString(), "✅ Thank you, you can start messaging! ✅")
         val user = getOrCreateUser(message)
         user.phoneNumber = message.contact.phoneNumber
-        user.botStep = BotStep.ONLINE
+        user.botStep = BotStep.SHOW_MENU
         userRepository.save(user)
+        val sendMessage = SendMessage(user.telegramId, "Kerakli bo`limni tanlang ❗\uFE0F")
+        sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
         return sendMessage
     }
 
@@ -514,31 +537,39 @@ class KeyboardReplyMarkupHandler(
         val row1Button1 = KeyboardButton()
         if (user.botStep == BotStep.FULL_SESSION && user.role == Role.OPERATOR) {
             val row2 = KeyboardRow()
-            row1Button1.text = "Close"
+            row1Button1.text = "Close ❌"
             val row1Button2 = KeyboardButton()
-            row1Button2.text = "Close and offline"
+            row1Button2.text = "Close and offline ❌"
             row1.add(row1Button1)
             row1.add(row1Button2)
             rowList.add(row1)
             rowList.add(row2)
         } else if (user.botStep == BotStep.ONLINE && user.role == Role.OPERATOR) {
-            row1Button1.text = "OFF"
+            row1Button1.text = "OFF ❌"
             val row1Button2 = KeyboardButton()
-            row1Button2.text = "ON"
+            row1Button2.text = "ON ✅"
             row1.add(row1Button1)
             row1.add(row1Button2)
             rowList.add(row1)
         } else if (user.botStep == BotStep.OFFLINE && user.role == Role.OPERATOR) {
-            row1Button1.text = "ON"
+            row1Button1.text = "ON ✅"
             row1.add(row1Button1)
             rowList.add(row1)
         } else if (user.botStep == BotStep.SHARE_CONTACT) {
-            val contactRequestButton = KeyboardButton("Share contact")
+            val contactRequestButton = KeyboardButton("Share contact \uD83D\uDCDE")
             val keyboardRow = KeyboardRow()
             contactRequestButton.requestContact = true
             keyboardRow.add(contactRequestButton)
             rowList.add(keyboardRow)
+        } else if (user.botStep == BotStep.SHOW_MENU && user.role == Role.USER) {
+            row1Button1.text = "Sozlamalar ⚙\uFE0F"
+            val row1Button2 = KeyboardButton()
+            row1Button2.text = "Savol berish ❓"
+            row1.add(row1Button1)
+            row1.add(row1Button2)
+            rowList.add(row1)
         }
+
         markup.keyboard = rowList
         markup.selective = true
         markup.resizeKeyboard = true
@@ -639,7 +670,7 @@ class FileBotService(
         sender: AbsSender,
         executive: Boolean,
         telegramId: String?,
-        session: Session
+        session: Session,
     ) {
         //save file
         //for document
@@ -686,11 +717,11 @@ class FileBotService(
         else if (message.hasVideo()) {
             message.video.run {
                 saveFileToDisk(
-                    fileName, getFromTelegram(fileId, getBotToken(), sender)
+                    "${fileName}.mp4", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.VIDEO)
-                val file = createFile(message, fileName, ContentType.VIDEO)
+                val file = createFile(message, "${fileName}.mp4", ContentType.VIDEO)
 
                 if (executive) {
                     val sendVideo = SendVideo(
@@ -798,11 +829,11 @@ class FileBotService(
 
             photos[1].run {
                 saveFileToDisk(
-                    "$fileUniqueId.png", getFromTelegram(fileId, getBotToken(), sender)
+                    "$fileUniqueId.jpg", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.PHOTO)
-                val file = createFile(message, "$fileUniqueId.png", ContentType.PHOTO)
+                val file = createFile(message, "$fileUniqueId.jpg", ContentType.PHOTO)
 
                 if (executive) {
                     val sendPhoto = SendPhoto(
@@ -987,7 +1018,7 @@ class FileBotService(
         fileOutputStream.close()
     }
 
-    fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
+    fun getBotToken() = "6170321057:AAGRy6I61dmUBIQMi8JjOvP48eAnTNFnx1g"
 
     fun createFile(message: Message, name: String, contentType: ContentType): uz.zerone.supporttelegrambot.File {
         val fileMessage = messageRepository.findByTelegramMessageIdAndDeletedFalse(message.messageId)

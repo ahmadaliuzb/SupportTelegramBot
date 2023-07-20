@@ -54,6 +54,7 @@ interface UserRepository : BaseRepository<User> {
     fun existsByUsername(username: String)
     fun findByTelegramId(telegramId: String): User
 
+    fun existsByPhoneNumberAndDeletedFalse(phoneNumber: String):Boolean
 
     @Query(
         value = "select u.*\n" +
