@@ -38,8 +38,7 @@ class MessageHandlerImpl(
     private val sessionBotService: SessionBotService,
     private val messageRepository: MessageRepository,
     private val fileBotService: FileBotService,
-    private val sessionRepository: SessionRepository
-    private val userService: UserService,
+    private val sessionRepository: SessionRepository,
 ) : MessageHandler {
     override fun handle(message: Message, sender: AbsSender) {
         val user = userBotService.getOrCreateUser(message)
@@ -61,11 +60,14 @@ class MessageHandlerImpl(
 
             BotStep.OFFLINE -> {
                 if (message.text == "ON") {
-                    val sendMessage = SendMessage(user.telegramId, "You are online")
-//                    keyboardReplyMarkupHandler.deleteReplyMarkup(message.chatId.toString(), sender)
-                    sender.execute(sendMessage)
+
                     user.botStep=BotStep.ONLINE
                     userRepository.save(user)
+
+                    val sendMessage = SendMessage(user.telegramId, "You are online")
+                    sendMessage.replyMarkup=keyboardReplyMarkupHandler.generateReplyMarkup(user)
+                    sender.execute(sendMessage)
+
                     val sessionsList = sessionRepository.findByActiveTrueAndOperatorIsNullOrderByCreatedDateAsc()
                     if (sessionsList.isNotEmpty())
                         keyboardReplyMarkupHandler.findWaitingUsers(message, sender, sessionsList)
@@ -79,9 +81,11 @@ class MessageHandlerImpl(
                     if (message.text == "OFF") {
                         val chatId = userBotService.getChatId(message)
                         val operator = userRepository.findByTelegramIdAndDeletedFalse(chatId)
+
                         operator.online = false
                         operator.botStep = BotStep.OFFLINE
                         userRepository.save(operator)
+
                         val sendMessage = SendMessage(chatId, "You are offline")
                         sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
                         sender.execute(sendMessage)
@@ -391,18 +395,18 @@ class KeyboardReplyMarkupHandler(
                     operator.botStep = BotStep.FULL_SESSION
                     userRepository.save(operator)
 
-                        when (it.messageType) {
+                        when (s_message.messageType) {
                             MessageType.VIDEO -> {
-                                val file = it.id?.let { id -> fileRepository.findByMessageId(id) }
+                                val file = fileRepository.findByMessageId(s_message.id!!)
                                 val sendVideo =
-                                    SendVideo(chatId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file?.name}")))
+                                    SendVideo(chatId, InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\SupportTelegramBot\\${file.name}")))
                                 sender.execute(sendVideo)
                             }
 
                         MessageType.AUDIO -> {
                             val file = fileRepository.findByMessageId(s_message.id!!)
                             val sendAudio =
-                                SendAudio(chatId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}")))
+                                SendAudio(chatId, InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\SupportTelegramBot\\${file.name}")))
                             sendAudio.replyMarkup = generateReplyMarkup(operator)
                             sender.execute(sendAudio)
                         }
@@ -410,7 +414,7 @@ class KeyboardReplyMarkupHandler(
                         MessageType.PHOTO -> {
                             val file = fileRepository.findByMessageId(s_message.id!!)
                             val sendPhoto =
-                                SendPhoto(chatId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}")))
+                                SendPhoto(chatId, InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\SupportTelegramBot\\${file.name}")))
                             sendPhoto.replyMarkup = generateReplyMarkup(operator)
                             sender.execute(sendPhoto)
                         }
@@ -420,7 +424,7 @@ class KeyboardReplyMarkupHandler(
                             val sendDocument =
                                 SendDocument(
                                     chatId,
-                                    InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                                    InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\SupportTelegramBot\\${file.name}"))
                                 )
                             sendDocument.replyMarkup = generateReplyMarkup(operator)
                             sender.execute(sendDocument)
@@ -473,7 +477,6 @@ class KeyboardReplyMarkupHandler(
         }
         else if(user.botStep == BotStep.OFFLINE && user.role == Role.OPERATOR){
             row1Button1.text = "ON"
-            row1Button1
             row1.add(row1Button1)
             rowList.add(row1)
         }
@@ -597,7 +600,7 @@ class FileBotService(
                 if (executive) {
                     val sendDocument = SendDocument(
                         telegramId!!,
-                        InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                        InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\SupportTelegramBot\\${file.name}"))
                     )
                     sender.execute(sendDocument)
                 }
@@ -617,7 +620,7 @@ class FileBotService(
                 if (executive) {
                     val sendVideo = SendVideo(
                         telegramId!!,
-                        InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                        InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\SupportTelegramBot\\${file.name}"))
                     )
                     sender.execute(sendVideo)
                 }
@@ -636,7 +639,7 @@ class FileBotService(
                 if (executive) {
                     val sendAudio = SendAudio(
                         telegramId!!,
-                        InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                        InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\SupportTelegramBot\\${file.name}"))
                     )
                     sender.execute(sendAudio)
                 }
@@ -656,7 +659,7 @@ class FileBotService(
                 if (executive) {
                     val sendVideoNote = SendVideoNote(
                         telegramId!!,
-                        InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                        InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\SupportTelegramBot\\${file.name}"))
                     )
                     sender.execute(sendVideoNote)
                 }
@@ -678,7 +681,7 @@ class FileBotService(
                 if (executive) {
                     val sendPhoto = SendPhoto(
                         telegramId!!,
-                        InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                        InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\SupportTelegramBot\\${file.name}"))
                     )
                     sender.execute(sendPhoto)
                 }
@@ -700,7 +703,7 @@ class FileBotService(
                 if (executive) {
                     val sendAnimation = SendAnimation(
                         telegramId!!,
-                        InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                        InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\SupportTelegramBot\\${file.name}"))
                     )
                     sender.execute(sendAnimation)
                 }
@@ -716,12 +719,12 @@ class FileBotService(
                 )
 
                 messageHandler.createMessage(message, session, MessageType.VOICE)
-                val file = createFile(message, "${fileUniqueId}.ogg", ContentType.VOICE)
+                val file = createFile(message,  "${fileUniqueId}.ogg", ContentType.VOICE)
 
                 if (executive) {
                     val sendVoice = SendVoice(
                         telegramId!!,
-                        InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                        InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\SupportTelegramBot\\${file.name}"))
                     )
                     sender.execute(sendVoice)
                 }
@@ -743,7 +746,7 @@ class FileBotService(
                 if (executive) {
                     val sendSticker = SendSticker(
                         telegramId!!,
-                        InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                        InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\SupportTelegramBot\\${file.name}"))
                     )
                     sender.execute(sendSticker)
                 }
