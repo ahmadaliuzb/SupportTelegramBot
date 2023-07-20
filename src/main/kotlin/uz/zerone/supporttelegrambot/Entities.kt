@@ -14,6 +14,7 @@ import org.springframework.data.jpa.repository.Temporal
 import java.util.*
 import javax.persistence.*
 
+
 @MappedSuperclass
 class BaseEntity(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) var id: Long? = null,

@@ -18,6 +18,5 @@ class Runnable(private val languageRepository: LanguageRepository) : CommandLine
         languageRepository.save(language1)
         languageRepository.save(language2)
         languageRepository.save(language3)
-
     }
 }

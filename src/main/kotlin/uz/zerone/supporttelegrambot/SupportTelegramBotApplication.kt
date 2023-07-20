@@ -15,6 +15,4 @@ class SupportTelegramBotApplication
 
 fun main(args: Array<String>) {
     runApplication<SupportTelegramBotApplication>(*args)
-//    val telegramBotsApi = TelegramBotsApi(DefaultBotSession::class.java)
-//    telegramBotsApi.registerBot(SupportTelegramBot(messageService = MessageService()))
 }
