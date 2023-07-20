@@ -60,7 +60,7 @@ class MessageHandlerImpl(
 
             BotStep.OFFLINE -> {
                 if (message.text == "ON") {
-                    val sendMessage = SendMessage(user.telegramId, "You are online")
+                    val sendMessage = SendMessage(user.telegramId, "✅ You are online ✅")
 //                    keyboardReplyMarkupHandler.deleteReplyMarkup(message.chatId.toString(), sender)
                     sender.execute(sendMessage)
                     user.botStep = BotStep.ONLINE
@@ -81,7 +81,7 @@ class MessageHandlerImpl(
                         operator.online = false
                         operator.botStep = BotStep.OFFLINE
                         userRepository.save(operator)
-                        val sendMessage = SendMessage(chatId, "You are offline")
+                        val sendMessage = SendMessage(chatId, "‼ You are offline ‼")
                         sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
                         sender.execute(sendMessage)
                     }
@@ -120,7 +120,7 @@ class MessageHandlerImpl(
                                 sendRateSelection(
                                     SendMessage(
                                         savedUser.telegramId,
-                                        "Please choose rate"
+                                        "\uD83D\uDCDD Please choose rate \uD83D\uDCDD"
                                     ),
                                     session.id
                                 )
@@ -131,7 +131,7 @@ class MessageHandlerImpl(
                             sessionBotService.save(session)
 
 
-                            val sendMessage = SendMessage(chatId, "You are disconnected")
+                            val sendMessage = SendMessage(chatId, "‼ You are disconnected ‼")
                             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
                             sender.execute(sendMessage)
 
@@ -158,7 +158,7 @@ class MessageHandlerImpl(
                                 sendRateSelection(
                                     SendMessage(
                                         savedUser.telegramId,
-                                        "Please choose rate"
+                                        "\uD83D\uDCDD Please choose rate \uD83D\uDCDD"
                                     ),
                                     session.id
                                 )
@@ -170,7 +170,7 @@ class MessageHandlerImpl(
                             sessionBotService.save(session)
 
 
-                            val sendMessage = SendMessage(user.telegramId, "You are offline")
+                            val sendMessage = SendMessage(user.telegramId, "‼ You are offline ‼")
                             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
                             sender.execute(sendMessage)
                         }
@@ -192,8 +192,7 @@ class MessageHandlerImpl(
     fun start(message: Message): SendMessage {
         val chatId = userBotService.getChatId(message)
         val sendMessage = SendMessage(
-            chatId, "Tilni tanlang!" +
-                    "Choose languagle!"
+            chatId, "🤖 Salom! Men qo'llab-quvvatlash \nbotiman. Sizga yordam bermoqchiman! \nQaysi tilda javob berasiz?"
         )
         val user = userBotService.getOrCreateUser(message)
         user.botStep = BotStep.CHOOSE_LANGUAGE
@@ -315,7 +314,7 @@ class CallbackQueryHandlerImpl(
 
         //Savol berish va sozlash buttonlarini yuborish
 
-        return  SendMessage(callbackQuery.message.chatId.toString(), "Thank you")
+        return  SendMessage(callbackQuery.message.chatId.toString(), "\uD83D\uDE0A Thank you \uD83D\uDE0A")
     }
 
     fun chooseLanguage(callbackQuery: CallbackQuery): SendMessage {
@@ -341,7 +340,7 @@ class CallbackQueryHandlerImpl(
         userRepository.save(user)
 
 
-        val sendMessage = SendMessage(callbackQuery.message.chatId.toString(), "Please share your contact")
+        val sendMessage = SendMessage(callbackQuery.message.chatId.toString(), "\uD83D\uDCE9 Please share your contact \uD83D\uDCE9")
         sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
 
         return sendMessage
@@ -398,7 +397,7 @@ class UserBotService(
     fun getChatId(callbackQuery: CallbackQuery): String = callbackQuery.message.chatId.toString()
 
     fun confirmContact(message: Message): SendMessage {
-        val sendMessage = SendMessage(message.chatId.toString(), "Thank you, you can start messaging!")
+        val sendMessage = SendMessage(message.chatId.toString(), "✅ Thank you, you can start messaging! ✅")
         val user = getOrCreateUser(message)
         user.phoneNumber = message.contact.phoneNumber
         user.botStep = BotStep.ONLINE
@@ -572,7 +571,7 @@ class SessionBotService(
                 user.botStep = BotStep.IN_SESSION
                 fileBotService.saveMessageAndFile(message, sender, false, null, session)
 
-                val sendMessage = SendMessage(user.telegramId, "Soon Operator will connect with you. Please wait!")
+                val sendMessage = SendMessage(user.telegramId, "\uD83D\uDD1C Soon Operator will connect with you. Please wait! \uD83D\uDD1C")
                 sender.execute(sendMessage)
 
             } else {
@@ -591,9 +590,9 @@ class SessionBotService(
 
                 fileBotService.saveMessageAndFile(message, sender, true, operator.telegramId, session)
 
-                var sendMessage = SendMessage(user.telegramId, "You are connected with Operator")
+                var sendMessage = SendMessage(user.telegramId, "\uD83E\uDD16 You are connected with Operator \uD83E\uDD16")
                 sender.execute(sendMessage)
-                sendMessage = SendMessage(operator.telegramId, "You are connected with User")
+                sendMessage = SendMessage(operator.telegramId, "\uD83E\uDD16 You are connected with User \uD83E\uDD16")
                 sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(operator)
                 sender.execute(sendMessage)
             }
@@ -718,11 +717,11 @@ class FileBotService(
 
             photos[1].run {
                 saveFileToDisk(
-                    fileUniqueId, getFromTelegram(fileId, getBotToken(), sender)
+                    "$fileUniqueId.png", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 messageHandler.createMessage(message, session, MessageType.PHOTO)
-                val file = createFile(message, fileUniqueId, ContentType.PHOTO)
+                val file = createFile(message, "$fileUniqueId.png", ContentType.PHOTO)
 
                 if (executive) {
                     val sendPhoto = SendPhoto(
