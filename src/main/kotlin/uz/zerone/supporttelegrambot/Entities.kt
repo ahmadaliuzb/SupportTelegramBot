@@ -44,7 +44,7 @@ class User(
     var online: Boolean,
     @ManyToMany(fetch = FetchType.EAGER)
     var languageList: MutableList<Language>?,
-    var totalRate :Int = 0
+    var totalRate: Int = 0
 ) : BaseEntity()
 
 @Entity
@@ -52,21 +52,18 @@ class Session(
     @ManyToOne val user: User,
     @ManyToOne var operator: User?,
     var active: Boolean,
-    var rate:Short?=null,
+    var rate: Short? = null,
 ) : BaseEntity()
 
 @Entity
 class Message(
-    @ManyToOne
-    var parentMessage: Message?,
     var telegramMessageId: Int,
     @ManyToOne var session: Session,
     @ManyToOne val sender: User,
     var messageType: MessageType,
     var active: Boolean,
-    val text: String?
+    val text: String?,
 ) : BaseEntity()
-
 
 @Entity
 class File(
@@ -78,3 +75,8 @@ class File(
 
 //
 
+@Entity
+class BotMessage(
+    val receivedMessageId: Int,
+    var telegramMessageId: Int
+) : BaseEntity()
