@@ -10,7 +10,6 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Message
-import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardRemove
@@ -36,12 +35,14 @@ class MessageHandlerImpl(
     private val userBotService: UserBotService,
     private val userRepository: UserRepository,
     private val keyboardReplyMarkupHandler: KeyboardReplyMarkupHandler,
+    private val sessionRepository: SessionRepository,
     private val sessionBotService: SessionBotService,
     private val messageRepository: MessageRepository,
     private val fileBotService: FileBotService,
+    private val userService: UserService,
 ) : MessageHandler {
     override fun handle(message: Message, sender: AbsSender) {
-        val user = userBotService.getOrCreateUser(message)
+        var user = userBotService.getOrCreateUser(message)
         when (user.botStep) {
             BotStep.START -> {
                 if (message.hasText()) {
@@ -89,6 +90,13 @@ class MessageHandlerImpl(
                 } else if (user.role == Role.OPERATOR) {
                     when (message.text) {
                         "Close" -> {
+                            val sesssion =
+                                sessionRepository.findByOperatorTelegramIdAndActiveTrue(message.from.id.toString())
+                            user = sesssion.user
+                            user.botStep = BotStep.ASSESSMENT
+                            userRepository.save(user)
+                            val sendMessage = SendMessage(user.telegramId, "Operator ishini baholang")
+                            sender.execute(sendRateButtons(sendMessage))
                             val chatId = userBotService.getChatId(message)
                             val operator = userRepository.findByTelegramIdAndDeletedFalse(chatId)
                             operator.botStep = BotStep.ONLINE
@@ -97,6 +105,13 @@ class MessageHandlerImpl(
                         }
 
                         "Close and OFF" -> {
+                            val sesssion =
+                                sessionRepository.findByOperatorTelegramIdAndActiveTrue(message.from.id.toString())
+                            user = sesssion.user
+                            user.botStep = BotStep.ASSESSMENT
+                            userRepository.save(user)
+                            val sendMessage = SendMessage(user.telegramId, "Operator ishini baholang")
+                            sender.execute(sendRateButtons(sendMessage))
                             val chatId = userBotService.getChatId(message)
                             val operator = userRepository.findByTelegramIdAndDeletedFalse(chatId)
                             operator.online = false
@@ -112,8 +127,6 @@ class MessageHandlerImpl(
                 }
             }
 
-            BotStep.ASSESSMENT -> TODO()
-            else -> {}
         }
     }
 
@@ -121,7 +134,8 @@ class MessageHandlerImpl(
     fun start(message: Message): SendMessage {
         val chatId = userBotService.getChatId(message)
         val sendMessage = SendMessage(
-            chatId, "Tilni tanlang!" +
+            chatId, "Tilni tanlang! " +
+                    "Выберите язык! "+
                     "Choose languagle!"
         )
         val user = userBotService.getOrCreateUser(message)
@@ -133,28 +147,69 @@ class MessageHandlerImpl(
     fun sendLanguageSelection(sendMessage: SendMessage): SendMessage {
         val inlineKeyboardMarkup = InlineKeyboardMarkup()
         val inlineKeyboardButtonsRow = ArrayList<InlineKeyboardButton>()
+
+        // Create buttons
+        val buttons = listOf(
+            InlineKeyboardButton.builder().text("Uzbek\uD83C\uDDFA\uD83C\uDDFF").callbackData("uzbek").build(),
+            InlineKeyboardButton.builder().text("Russian\uD83C\uDDF7\uD83C\uDDFA").callbackData("russian").build(),
+            InlineKeyboardButton.builder().text("English\uD83C\uDDEC\uD83C\uDDE7").callbackData("english").build()
+        )
+
+        // Shuffle the buttons to generate a random order
+        buttons.shuffled().forEach {
+            inlineKeyboardButtonsRow.add(it)
+        }
+
+        val inlineKeyboardButtons = ArrayList<List<InlineKeyboardButton>>()
+        inlineKeyboardButtons.add(inlineKeyboardButtonsRow)
+        inlineKeyboardMarkup.keyboard = inlineKeyboardButtons
+        sendMessage.replyMarkup = inlineKeyboardMarkup
+        return sendMessage
+    }
+
+    fun sendRateButtons(sendMessage: SendMessage): SendMessage {
+        val inlineKeyboardMarkup = InlineKeyboardMarkup()
+        val inlineKeyboardButtonsRow = ArrayList<InlineKeyboardButton>()
         inlineKeyboardButtonsRow.add(
             InlineKeyboardButton.builder()
-                .text("O`zbek tili \uD83C\uDDFA\uD83C\uDDFF ")
-                .callbackData("uzbek")
+                .text("1")
+                .callbackData("1")
                 .build()
         )
         inlineKeyboardButtonsRow.add(
-            InlineKeyboardButton.builder().text("Русский \uD83C\uDDF7\uD83C\uDDFA")
-                .callbackData("russian")
+            InlineKeyboardButton.builder()
+                .text("2")
+                .callbackData("2")
+                .build()
+        )
+        inlineKeyboardButtonsRow.add(
+            InlineKeyboardButton.builder()
+                .text("3")
+                .callbackData("3")
+                .build()
+        )
+        inlineKeyboardButtonsRow.add(
+            InlineKeyboardButton.builder()
+                .text("4")
+                .callbackData("4")
+                .build()
+        )
+        inlineKeyboardButtonsRow.add(
+            InlineKeyboardButton.builder()
+                .text("5")
+                .callbackData("5")
                 .build()
         )
 
-        inlineKeyboardButtonsRow.add(
-            InlineKeyboardButton.builder().text("English \uD83C\uDDEC\uD83C\uDDE7")
-                .callbackData("english")
-                .build()
-        )
         val inlineKeyboardButtons = ArrayList<List<InlineKeyboardButton>>()
         inlineKeyboardButtons.add(inlineKeyboardButtonsRow)
         inlineKeyboardMarkup.keyboard = inlineKeyboardButtons
 
         sendMessage.replyMarkup = inlineKeyboardMarkup
+        return sendMessage
+    }
+
+    fun notificationOperator(sendMessage: SendMessage):SendMessage{
         return sendMessage
     }
 
@@ -168,6 +223,7 @@ class MessageHandlerImpl(
         val saveMessage = Message(null, messageId, session, user, messageType, true, message.text)
         messageRepository.save(saveMessage)
     }
+
 
 }
 
@@ -185,12 +241,15 @@ class CallbackQueryHandlerImpl(
                 sender.execute(chooseLanguage(callbackQuery))
             }
 
-            BotStep.ASSESSMENT -> TODO()
+            BotStep.ASSESSMENT -> {
+                sender.execute(chooseRate(callbackQuery))
+            }
+
             else -> {}
         }
     }
 
-    fun chooseLanguage(callbackQuery: CallbackQuery): SendMessage {
+    fun chooseLanguage(callbackQuery: CallbackQuery):SendMessage{
         val data = callbackQuery.data
         val user = userBotService.getOrCreateUser(callbackQuery)
         val languageList = mutableListOf<Language>()
@@ -227,6 +286,37 @@ class CallbackQueryHandlerImpl(
         sendMessage.replyMarkup = markup
 
         return sendMessage
+    }
+    fun chooseRate(callbackQuery: CallbackQuery): SendMessage {
+        val data = callbackQuery.data
+        val user = userBotService.getOrUser(callbackQuery)
+        when (data) {
+            "1" -> {
+                user.totalRate.plus(1)
+            }
+
+            "2" -> {
+                user.totalRate.plus(2)
+            }
+
+            "3" -> {
+                user.totalRate.plus(3)
+            }
+
+            "4" -> {
+                user.totalRate.plus(4)
+            }
+
+            "5" -> {
+                user.totalRate.plus(5)
+            }
+        }
+
+        user.botStep = BotStep.ASSESSMENT
+        userRepository.save(user)
+
+
+        return SendMessage(callbackQuery.message.chatId.toString(), "Thank you for your feedback")
 
     }
 }
@@ -276,6 +366,25 @@ class UserBotService(
         return userRepository.findByTelegramIdAndDeletedFalse(chatId)
     }
 
+    fun getOrUser(callbackQuery: CallbackQuery): User {
+        val chatId = getChatId(callbackQuery)
+        if (!userRepository.existsByTelegramIdAndDeletedFalse(chatId)) {
+            return userRepository.save(
+                User(
+                    chatId,
+                    callbackQuery.from.userName,
+                    null,
+                    BotStep.ONLINE,
+                    Role.USER,
+                    true,
+                    mutableListOf(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.UZ))
+                )
+            )
+        }
+
+        return userRepository.findByTelegramIdAndDeletedFalse(chatId)
+    }
+
     fun getChatId(message: Message): String = message.chatId.toString()
     fun getChatId(callbackQuery: CallbackQuery): String = callbackQuery.message.chatId.toString()
 
@@ -287,6 +396,7 @@ class UserBotService(
         userRepository.save(user)
         return sendMessage
     }
+
 
 
 }
@@ -345,7 +455,7 @@ class KeyboardReplyMarkupHandler(
                             MessageType.VIDEO -> {
                                 val file = it.id?.let { id -> fileRepository.findByMessageId(id) }
                                 val sendVideo =
-                                    SendVideo(chatId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file?.name}")))
+                                    SendVideo(chatId, InputFile(File("C:\\PDP\\Kotlin\\project\\GitHub\\File\\${file?.name}")))
                                 sender.execute(sendVideo)
                             }
 
@@ -359,7 +469,7 @@ class KeyboardReplyMarkupHandler(
                             MessageType.PHOTO -> {
                                 val file = it.id?.let { id -> fileRepository.findByMessageId(id) }
                                 val sendPhoto =
-                                    SendPhoto(chatId, InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file?.name}")))
+                                    SendPhoto(chatId, InputFile(File("C:\\PDP\\Kotlin\\File\\${file?.contentType}")))
                                 sender.execute(sendPhoto)
                             }
 
@@ -577,7 +687,7 @@ class FileBotService(
                 if (executive) {
                     val sendPhoto = SendPhoto(
                         session.operator!!.telegramId,
-                        InputFile(File("D:\\Kotlin\\SupportTelegramBot\\${file.name}"))
+                        InputFile(File("C:\\Kotlin\\File\\${file.contentType}"))
                     )
                     sender.execute(sendPhoto)
                 }

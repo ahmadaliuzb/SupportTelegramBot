@@ -3,6 +3,7 @@ package uz.zerone.supporttelegrambot
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
@@ -20,9 +21,6 @@ Created by Akhmadali
 @Transactional
 class MessageService(
 ) {
-
-
-
 
 
     fun generateInlineMarkup(user: User): InlineKeyboardMarkup {
@@ -69,38 +67,23 @@ class MessageService(
     }
 
 
-
 }
 
 
 @Service
 class UserService(
-private val userRepository: UserRepository,
-private val languageRepository: LanguageRepository
+    private val userRepository: UserRepository,
+    private val languageRepository: LanguageRepository,
 ) {
     fun getAll(pageable: Pageable): Page<UsersList> {
         return userRepository.findAllNotDeleted(pageable).map { UsersList.toDto(it) }
     }
 
     fun update(dto: UserUpdateDto) {
-        val languages = mutableListOf<Language>()
-        for (languageDto in dto.languageList) {
-            when (languageDto) {
-                "UZ" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.UZ))
-                "RU" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.RU))
-                "ENG" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.ENG))
-            }
-        }
 
-        dto.run {
-            val user = userRepository.findByPhoneNumberAndDeletedFalse(phoneNumber)
-            user.phoneNumber = phoneNumber
-            user.languageList = languages
-            user.role=Role.OPERATOR
-            userRepository.save(user)
-        }
 
     }
+
 }
 
 

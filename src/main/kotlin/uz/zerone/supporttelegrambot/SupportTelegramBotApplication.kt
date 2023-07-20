@@ -10,6 +10,7 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
 @SpringBootApplication
 @EnableJpaAuditing
 @EnableJpaRepositories(repositoryBaseClass = BaseRepositoryImpl::class)
+
 class SupportTelegramBotApplication
 
 fun main(args: Array<String>) {
