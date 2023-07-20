@@ -52,7 +52,7 @@ class Session(
     @ManyToOne val user: User,
     @ManyToOne var operator: User?,
     var active: Boolean,
-    var assessment: Int? = 0
+    var rate:Short?=null,
 ) : BaseEntity()
 
 @Entity
@@ -71,6 +71,7 @@ class Message(
 @Entity
 class File(
     var name: String,
+    var path: String,
     var contentType: ContentType,
     @ManyToOne val message: Message,
 ) : BaseEntity()
