@@ -18,8 +18,6 @@ import javax.persistence.*
 @MappedSuperclass
 class BaseEntity(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) var id: Long? = null,
-    @CreatedDate @Temporal(TemporalType.TIMESTAMP) var createdDate: Date? = null,
-    @LastModifiedDate @Temporal(TemporalType.TIMESTAMP) var modifiedDate: Date? = null,
     @Column(nullable = false) @ColumnDefault(value = "false") var deleted: Boolean = false,
 )
 
@@ -53,6 +51,7 @@ class Session(
     @ManyToOne var operator: User?,
     var active: Boolean,
     var rate: Short? = null,
+    @Temporal(TemporalType.TIMESTAMP) var createdDate: Date,
 ) : BaseEntity()
 
 @Entity
