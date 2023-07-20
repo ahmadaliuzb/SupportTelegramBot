@@ -34,7 +34,7 @@ class MessageService(
 @Service
 class UserService(
     private val userRepository: UserRepository,
-    private val languageRepository: LanguageRepository
+    private val languageRepository: LanguageRepository,
 ) {
     fun getAll(pageable: Pageable): Page<UsersList> {
         return userRepository.findAllNotDeleted(pageable).map { UsersList.toDto(it) }
@@ -59,6 +59,7 @@ class UserService(
         }
 
     }
+
 }
 
 

@@ -38,7 +38,7 @@ class MessageHandlerImpl(
     private val sessionBotService: SessionBotService,
     private val messageRepository: MessageRepository,
     private val fileBotService: FileBotService,
-    private val sessionRepository: SessionRepository
+    private val sessionRepository: SessionRepository,
 ) : MessageHandler {
     override fun handle(message: Message, sender: AbsSender) {
         val user = userBotService.getOrCreateUser(message)
@@ -60,11 +60,14 @@ class MessageHandlerImpl(
 
             BotStep.OFFLINE -> {
                 if (message.text == "ON") {
-                    val sendMessage = SendMessage(user.telegramId, "✅ You are online ✅")
-//                    keyboardReplyMarkupHandler.deleteReplyMarkup(message.chatId.toString(), sender)
-                    sender.execute(sendMessage)
-                    user.botStep = BotStep.ONLINE
+
+                    user.botStep=BotStep.ONLINE
                     userRepository.save(user)
+
+                    val sendMessage = SendMessage(user.telegramId, "You are online")
+                    sendMessage.replyMarkup=keyboardReplyMarkupHandler.generateReplyMarkup(user)
+                    sender.execute(sendMessage)
+
                     val sessionsList = sessionRepository.findByActiveTrueAndOperatorIsNullOrderByCreatedDateAsc()
                     if (sessionsList.isNotEmpty())
                         keyboardReplyMarkupHandler.findWaitingUsers(message, sender, sessionsList)
@@ -78,9 +81,11 @@ class MessageHandlerImpl(
                     if (message.text == "OFF") {
                         val chatId = userBotService.getChatId(message)
                         val operator = userRepository.findByTelegramIdAndDeletedFalse(chatId)
+
                         operator.online = false
                         operator.botStep = BotStep.OFFLINE
                         userRepository.save(operator)
+
                         val sendMessage = SendMessage(chatId, "‼ You are offline ‼")
                         sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
                         sender.execute(sendMessage)
@@ -131,7 +136,7 @@ class MessageHandlerImpl(
                             sessionBotService.save(session)
 
 
-                            val sendMessage = SendMessage(chatId, "‼ You are disconnected ‼")
+                            val sendMessage = SendMessage(chatId, "You are disconnected")
                             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
                             sender.execute(sendMessage)
 
@@ -183,8 +188,6 @@ class MessageHandlerImpl(
                 }
             }
 
-            BotStep.ASSESSMENT -> TODO()
-            else -> {}
         }
     }
 
@@ -192,7 +195,9 @@ class MessageHandlerImpl(
     fun start(message: Message): SendMessage {
         val chatId = userBotService.getChatId(message)
         val sendMessage = SendMessage(
-            chatId, "🤖 Salom! Men qo'llab-quvvatlash \nbotiman. Sizga yordam bermoqchiman! \nQaysi tilda javob berasiz?"
+            chatId, "🤖 Salom! Men qo'llab-quvvatlash " +
+                    "\nbotiman. Sizga yordam bermoqchiman! " +
+                    "\nQaysi tilda javob berasiz?"
         )
         val user = userBotService.getOrCreateUser(message)
         user.botStep = BotStep.CHOOSE_LANGUAGE
@@ -522,7 +527,6 @@ class KeyboardReplyMarkupHandler(
             rowList.add(row1)
         } else if (user.botStep == BotStep.OFFLINE && user.role == Role.OPERATOR) {
             row1Button1.text = "ON"
-            row1Button1
             row1.add(row1Button1)
             rowList.add(row1)
         } else if (user.botStep == BotStep.SHARE_CONTACT) {
@@ -564,12 +568,12 @@ class SessionBotService(
             val session: Session
 
             if (operatorList.isEmpty()) {
-                session = Session(user, null, true, null, null)
+                session = Session(user, null, true, null)
                 session.active = true
                 sessionRepository.save(session)
 
                 user.botStep = BotStep.IN_SESSION
-                fileBotService.saveMessageAndFile(message, sender, false, null, session)
+                    fileBotService.saveMessageAndFile(message, sender, false, null, session)
 
                 val sendMessage = SendMessage(user.telegramId, "\uD83D\uDD1C Soon Operator will connect with you. Please wait! \uD83D\uDD1C")
                 sender.execute(sendMessage)
@@ -577,7 +581,7 @@ class SessionBotService(
             } else {
                 val operator = operatorList[0]
 
-                session = Session(user, operator, true, null, null)
+                session = Session(user, operator, true, null)
                 session.active = true
                 sessionRepository.save(session)
 

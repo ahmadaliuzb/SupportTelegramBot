@@ -43,7 +43,8 @@ class User(
     var role: Role,
     var online: Boolean,
     @ManyToMany(fetch = FetchType.EAGER)
-    var languageList: MutableList<Language>?
+    var languageList: MutableList<Language>?,
+    var totalRate :Int = 0
 ) : BaseEntity()
 
 @Entity
@@ -52,7 +53,6 @@ class Session(
     @ManyToOne var operator: User?,
     var active: Boolean,
     var rate:Short?=null,
-    var assessment: Int?
 ) : BaseEntity()
 
 @Entity
