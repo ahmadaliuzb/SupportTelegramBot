@@ -38,7 +38,7 @@ class MessageHandlerImpl(
     private val sessionBotService: SessionBotService,
     private val messageRepository: MessageRepository,
     private val fileBotService: FileBotService,
-    private val sessionRepository: SessionRepository
+    private val sessionRepository: SessionRepository,
 ) : MessageHandler {
     override fun handle(message: Message, sender: AbsSender) {
         val user = userBotService.getOrCreateUser(message)
@@ -60,11 +60,14 @@ class MessageHandlerImpl(
 
             BotStep.OFFLINE -> {
                 if (message.text == "ON") {
-                    val sendMessage = SendMessage(user.telegramId, "You are online")
-//                    keyboardReplyMarkupHandler.deleteReplyMarkup(message.chatId.toString(), sender)
-                    sender.execute(sendMessage)
-                    user.botStep = BotStep.ONLINE
+
+                    user.botStep=BotStep.ONLINE
                     userRepository.save(user)
+
+                    val sendMessage = SendMessage(user.telegramId, "You are online")
+                    sendMessage.replyMarkup=keyboardReplyMarkupHandler.generateReplyMarkup(user)
+                    sender.execute(sendMessage)
+
                     val sessionsList = sessionRepository.findByActiveTrueAndOperatorIsNullOrderByCreatedDateAsc()
                     if (sessionsList.isNotEmpty())
                         keyboardReplyMarkupHandler.findWaitingUsers(message, sender, sessionsList)
@@ -78,9 +81,11 @@ class MessageHandlerImpl(
                     if (message.text == "OFF") {
                         val chatId = userBotService.getChatId(message)
                         val operator = userRepository.findByTelegramIdAndDeletedFalse(chatId)
+
                         operator.online = false
                         operator.botStep = BotStep.OFFLINE
                         userRepository.save(operator)
+
                         val sendMessage = SendMessage(chatId, "You are offline")
                         sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
                         sender.execute(sendMessage)
@@ -183,8 +188,6 @@ class MessageHandlerImpl(
                 }
             }
 
-            BotStep.ASSESSMENT -> TODO()
-            else -> {}
         }
     }
 
@@ -192,7 +195,8 @@ class MessageHandlerImpl(
     fun start(message: Message): SendMessage {
         val chatId = userBotService.getChatId(message)
         val sendMessage = SendMessage(
-            chatId, "Tilni tanlang!" +
+            chatId, "Tilni tanlang! " +
+                    "Выберите язык! "+
                     "Choose languagle!"
         )
         val user = userBotService.getOrCreateUser(message)
@@ -243,6 +247,41 @@ class MessageHandlerImpl(
     fun sendLanguageSelection(sendMessage: SendMessage): SendMessage {
         val inlineKeyboardMarkup = InlineKeyboardMarkup()
         val inlineKeyboardButtonsRow = ArrayList<InlineKeyboardButton>()
+
+        // Create buttons
+        val buttons = listOf(
+            InlineKeyboardButton.builder().text("Uzbek\uD83C\uDDFA\uD83C\uDDFF").callbackData("uzbek").build(),
+            InlineKeyboardButton.builder().text("Russian\uD83C\uDDF7\uD83C\uDDFA").callbackData("russian").build(),
+            InlineKeyboardButton.builder().text("English\uD83C\uDDEC\uD83C\uDDE7").callbackData("english").build()
+        )
+
+        // Shuffle the buttons to generate a random order
+        buttons.shuffled().forEach {
+            inlineKeyboardButtonsRow.add(it)
+        }
+
+        val inlineKeyboardButtons = ArrayList<List<InlineKeyboardButton>>()
+        inlineKeyboardButtons.add(inlineKeyboardButtonsRow)
+        inlineKeyboardMarkup.keyboard = inlineKeyboardButtons
+        sendMessage.replyMarkup = inlineKeyboardMarkup
+        return sendMessage
+    }
+
+    fun sendRateButtons(sendMessage: SendMessage): SendMessage {
+        val inlineKeyboardMarkup = InlineKeyboardMarkup()
+        val inlineKeyboardButtonsRow = ArrayList<InlineKeyboardButton>()
+        inlineKeyboardButtonsRow.add(
+            InlineKeyboardButton.builder()
+                .text("1")
+                .callbackData("1")
+                .build()
+        )
+        inlineKeyboardButtonsRow.add(
+            InlineKeyboardButton.builder()
+                .text("2")
+                .callbackData("2")
+                .build()
+        )
         inlineKeyboardButtonsRow.add(
             InlineKeyboardButton.builder()
                 .text("O`zbek tili \uD83C\uDDFA\uD83C\uDDFF ")
@@ -523,7 +562,6 @@ class KeyboardReplyMarkupHandler(
             rowList.add(row1)
         } else if (user.botStep == BotStep.OFFLINE && user.role == Role.OPERATOR) {
             row1Button1.text = "ON"
-            row1Button1
             row1.add(row1Button1)
             rowList.add(row1)
         } else if (user.botStep == BotStep.SHARE_CONTACT) {
@@ -565,12 +603,12 @@ class SessionBotService(
             val session: Session
 
             if (operatorList.isEmpty()) {
-                session = Session(user, null, true, null, null)
+                session = Session(user, null, true, null)
                 session.active = true
                 sessionRepository.save(session)
 
                 user.botStep = BotStep.IN_SESSION
-                fileBotService.saveMessageAndFile(message, sender, false, null, session)
+                    fileBotService.saveMessageAndFile(message, sender, false, null, session)
 
                 val sendMessage = SendMessage(user.telegramId, "Soon Operator will connect with you. Please wait!")
                 sender.execute(sendMessage)
@@ -578,7 +616,7 @@ class SessionBotService(
             } else {
                 val operator = operatorList[0]
 
-                session = Session(user, operator, true, null, null)
+                session = Session(user, operator, true, null)
                 session.active = true
                 sessionRepository.save(session)
 
@@ -718,11 +756,11 @@ class FileBotService(
 
             photos[1].run {
                 saveFileToDisk(
-                    fileUniqueId, getFromTelegram(fileId, getBotToken(), sender)
+                    "${fileUniqueId}.jpg", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 messageHandler.createMessage(message, session, MessageType.PHOTO)
-                val file = createFile(message, fileUniqueId, ContentType.PHOTO)
+                val file = createFile(message, "${fileUniqueId}.jpg", ContentType.PHOTO)
 
                 if (executive) {
                     val sendPhoto = SendPhoto(
@@ -819,7 +857,7 @@ class FileBotService(
         fileOutputStream.close()
     }
 
-    fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
+    fun getBotToken() = "6170321057:AAGRy6I61dmUBIQMi8JjOvP48eAnTNFnx1g"
 
     fun createFile(message: Message, name: String, contentType: ContentType): uz.zerone.supporttelegrambot.File {
         val fileMessage = messageRepository.findByTelegramMessageIdAndDeletedFalse(message.messageId)

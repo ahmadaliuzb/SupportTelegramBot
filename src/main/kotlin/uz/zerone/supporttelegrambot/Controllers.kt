@@ -25,6 +25,7 @@ class ExceptionHandlers(
 @RestController
 @RequestMapping("api/user")
 class UserController(
+    private val telegramBot: SupportTelegramBot,
     private val userService: UserService
 ) {
 
@@ -32,6 +33,6 @@ class UserController(
     fun getAll(pageable: Pageable): Page<UsersList> = userService.getAll(pageable)
 
     @PutMapping
-    fun update(@RequestBody dto: UserUpdateDto) = userService.update(dto)
+    fun update(@RequestBody dto: UserUpdateDto) = telegramBot.notificationOperator(dto)
 
 }
