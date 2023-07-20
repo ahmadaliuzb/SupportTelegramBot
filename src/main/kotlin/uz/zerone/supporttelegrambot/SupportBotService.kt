@@ -603,12 +603,12 @@ class SessionBotService(
             val session: Session
 
             if (operatorList.isEmpty()) {
-                session = Session(user, null, true, null, null)
+                session = Session(user, null, true, null)
                 session.active = true
                 sessionRepository.save(session)
 
                 user.botStep = BotStep.IN_SESSION
-                fileBotService.saveMessageAndFile(message, sender, false, null, session)
+                    fileBotService.saveMessageAndFile(message, sender, false, null, session)
 
                 val sendMessage = SendMessage(user.telegramId, "Soon Operator will connect with you. Please wait!")
                 sender.execute(sendMessage)
@@ -616,7 +616,7 @@ class SessionBotService(
             } else {
                 val operator = operatorList[0]
 
-                session = Session(user, operator, true, null, null)
+                session = Session(user, operator, true, null)
                 session.active = true
                 sessionRepository.save(session)
 
@@ -756,11 +756,11 @@ class FileBotService(
 
             photos[1].run {
                 saveFileToDisk(
-                    fileUniqueId, getFromTelegram(fileId, getBotToken(), sender)
+                    "${fileUniqueId}.jpg", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 messageHandler.createMessage(message, session, MessageType.PHOTO)
-                val file = createFile(message, fileUniqueId, ContentType.PHOTO)
+                val file = createFile(message, "${fileUniqueId}.jpg", ContentType.PHOTO)
 
                 if (executive) {
                     val sendPhoto = SendPhoto(
@@ -857,7 +857,7 @@ class FileBotService(
         fileOutputStream.close()
     }
 
-    fun getBotToken() = "6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s"
+    fun getBotToken() = "6170321057:AAGRy6I61dmUBIQMi8JjOvP48eAnTNFnx1g"
 
     fun createFile(message: Message, name: String, contentType: ContentType): uz.zerone.supporttelegrambot.File {
         val fileMessage = messageRepository.findByTelegramMessageIdAndDeletedFalse(message.messageId)
