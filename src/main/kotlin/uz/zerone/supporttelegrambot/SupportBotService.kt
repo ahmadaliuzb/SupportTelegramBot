@@ -57,18 +57,18 @@ class MessageHandlerImpl(
                 }
             }
 
-            BotStep.SHOW_MENU ->{
-                val sendMessage:SendMessage
-                if (message.text=="Savol berish ❓"){
+            BotStep.SHOW_MENU -> {
+                val sendMessage: SendMessage
+                if (message.text == "Savol berish ❓") {
                     user.botStep = BotStep.ONLINE
                     userRepository.save(user)
-                    sendMessage= SendMessage(user.telegramId,"You can start messaging")
+                    sendMessage = SendMessage(user.telegramId, "You can start messaging")
                     sender.execute(sendMessage)
                     keyboardReplyMarkupHandler.deleteReplyMarkup(message.chatId.toString(), sender)
-                }else if (message.text == "Sozlamalar ⚙\uFE0F"){
+                } else if (message.text == "Sozlamalar ⚙\uFE0F") {
                     user.botStep = BotStep.CHOOSE_LANGUAGE
                     userRepository.save(user)
-                    sendMessage = SendMessage(user.telegramId,"Choose languagle❗\uFE0F")
+                    sendMessage = SendMessage(user.telegramId, "Choose languagle❗\uFE0F")
                     sender.execute(sendLanguageSelection(sendMessage))
                 }
             }
@@ -359,14 +359,13 @@ class CallbackQueryHandlerImpl(
         }
 
         user.languageList?.set(0, languageList[0])
-        val sendMessage:SendMessage
-        if(user.phoneNumber!=null){
+        val sendMessage: SendMessage
+        if (user.phoneNumber != null) {
             user.botStep = BotStep.SHOW_MENU
             userRepository.save(user)
             sendMessage = SendMessage(user.telegramId, "Kerakli bo`limni tanlang")
-            sendMessage.replyMarkup=keyboardReplyMarkupHandler.generateReplyMarkup(user)
-        }
-        else{
+            sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+        } else {
             user.botStep = BotStep.SHARE_CONTACT
             userRepository.save(user)
             sendMessage = SendMessage(callbackQuery.message.chatId.toString(), "Please share your contact")
@@ -433,7 +432,7 @@ class UserBotService(
         user.botStep = BotStep.SHOW_MENU
         userRepository.save(user)
         val sendMessage = SendMessage(user.telegramId, "Kerakli bo`limni tanlang ❗\uFE0F")
-        sendMessage.replyMarkup=keyboardReplyMarkupHandler.generateReplyMarkup(user)
+        sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
         return sendMessage
     }
 
@@ -562,7 +561,7 @@ class KeyboardReplyMarkupHandler(
             contactRequestButton.requestContact = true
             keyboardRow.add(contactRequestButton)
             rowList.add(keyboardRow)
-        }else if (user.botStep == BotStep.SHOW_MENU && user.role == Role.USER) {
+        } else if (user.botStep == BotStep.SHOW_MENU && user.role == Role.USER) {
             row1Button1.text = "Sozlamalar ⚙\uFE0F"
             val row1Button2 = KeyboardButton()
             row1Button2.text = "Savol berish ❓"
@@ -671,7 +670,7 @@ class FileBotService(
         sender: AbsSender,
         executive: Boolean,
         telegramId: String?,
-        session: Session
+        session: Session,
     ) {
         //save file
         //for document
@@ -721,7 +720,7 @@ class FileBotService(
                     "${fileName}.mp4", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
-                messageHandler.createMessage(message, session, MessageType.VIDEO)
+                val receivedId = messageHandler.createMessage(message, session, MessageType.VIDEO)
                 val file = createFile(message, "${fileName}.mp4", ContentType.VIDEO)
 
                 if (executive) {

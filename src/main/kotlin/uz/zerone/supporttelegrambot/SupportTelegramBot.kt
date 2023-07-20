@@ -14,9 +14,9 @@ class SupportTelegramBot(
     private val keyboardReplyMarkupHandler: KeyboardReplyMarkupHandler,
 ) : TelegramLongPollingBot() {
 
-    override fun getBotUsername(): String = "zeroone4bot"
+    override fun getBotUsername(): String = "https://t.me/testsuppoertbot"
 
-    override fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
+    override fun getBotToken() = "6170321057:AAGRy6I61dmUBIQMi8JjOvP48eAnTNFnx1g"
 
     override fun onUpdateReceived(update: Update) {
         when {
