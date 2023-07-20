@@ -19,7 +19,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.bots.AbsSender
 import java.io.File
 import java.io.FileOutputStream
+import java.util.*
 import javax.transaction.Transactional
+import kotlin.collections.ArrayList
 
 interface MessageHandler {
     fun handle(message: Message, sender: AbsSender)
@@ -448,6 +450,7 @@ class KeyboardReplyMarkupHandler(
     private val userRepository: UserRepository,
     private val messageRepository: MessageRepository,
     private val fileRepository: FileRepository,
+    private val botMessageRepository: BotMessageRepository
 ) {
     fun deleteReplyMarkup(chatId: String, sender: AbsSender) {
         val sendMessage = SendMessage(
@@ -477,7 +480,9 @@ class KeyboardReplyMarkupHandler(
                             val sendVideo =
                                 SendVideo(chatId, InputFile(File(file.path)))
                             sendVideo.replyMarkup = generateReplyMarkup(operator)
-                            sender.execute(sendVideo)
+                            val sendMessageByBot = sender.execute(sendVideo)
+                            val botMessage = BotMessage(s_message.telegramMessageId,sendMessageByBot.messageId)
+                            botMessageRepository.save(botMessage)
                         }
 
                         MessageType.AUDIO -> {
@@ -485,7 +490,10 @@ class KeyboardReplyMarkupHandler(
                             val sendAudio =
                                 SendAudio(chatId, InputFile(File(file.path)))
                             sendAudio.replyMarkup = generateReplyMarkup(operator)
-                            sender.execute(sendAudio)
+                            val sendMessageByBot = sender.execute(sendAudio)
+                            val botMessage = BotMessage(s_message.telegramMessageId,sendMessageByBot.messageId)
+                            botMessageRepository.save(botMessage)
+
                         }
 
                         MessageType.PHOTO -> {
@@ -493,7 +501,9 @@ class KeyboardReplyMarkupHandler(
                             val sendPhoto =
                                 SendPhoto(chatId, InputFile(File(file.path)))
                             sendPhoto.replyMarkup = generateReplyMarkup(operator)
-                            sender.execute(sendPhoto)
+                            val sendMessageByBot = sender.execute(sendPhoto)
+                            val botMessage = BotMessage(s_message.telegramMessageId,sendMessageByBot.messageId)
+                            botMessageRepository.save(botMessage)
                         }
 
                         MessageType.DOCUMENT -> {
@@ -503,8 +513,9 @@ class KeyboardReplyMarkupHandler(
                                     chatId,
                                     InputFile(File(file.path))
                                 )
-                            sendDocument.replyMarkup = generateReplyMarkup(operator)
-                            sender.execute(sendDocument)
+                            val sendMessageByBot = sender.execute(sendDocument)
+                            val botMessage = BotMessage(s_message.telegramMessageId,sendMessageByBot.messageId)
+                            botMessageRepository.save(botMessage)
                         }
 
                         MessageType.TEXT -> {
@@ -512,7 +523,9 @@ class KeyboardReplyMarkupHandler(
                             if (sendMessage != null) {
                                 sendMessage.replyMarkup = generateReplyMarkup(operator)
                             }
-                            sender.execute(sendMessage)
+                            val sendMessageByBot = sender.execute(sendMessage)
+                            val botMessage = BotMessage(s_message.telegramMessageId,sendMessageByBot.messageId)
+                            botMessageRepository.save(botMessage)
                         }
 
                         else -> {}
@@ -602,7 +615,7 @@ class SessionBotService(
             val session: Session
 
             if (operatorList.isEmpty()) {
-                session = Session(user, null, true, 0)
+                session = Session(user, null, true, 0, Date())
                 session.active = true
                 sessionRepository.save(session)
 
@@ -618,7 +631,7 @@ class SessionBotService(
             } else {
                 val operator = operatorList[0]
 
-                session = Session(user, operator, true, 0)
+                session = Session(user, operator, true, 0,Date())
                 session.active = true
                 sessionRepository.save(session)
 
@@ -1018,7 +1031,7 @@ class FileBotService(
         fileOutputStream.close()
     }
 
-    fun getBotToken() = "6170321057:AAGRy6I61dmUBIQMi8JjOvP48eAnTNFnx1g"
+    fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
 
     fun createFile(message: Message, name: String, contentType: ContentType): uz.zerone.supporttelegrambot.File {
         val fileMessage = messageRepository.findByTelegramMessageIdAndDeletedFalse(message.messageId)
