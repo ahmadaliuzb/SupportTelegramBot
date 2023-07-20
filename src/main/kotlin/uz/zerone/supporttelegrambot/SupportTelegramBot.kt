@@ -43,7 +43,7 @@ class SupportTelegramBot(
             user.role = Role.OPERATOR
             user.botStep=BotStep.OFFLINE
             userRepository.save(user)
-            val sendMessage = SendMessage(user.telegramId,"You have been assigned to the position of operator")
+            val sendMessage = SendMessage(user.telegramId,"You have been assigned to the position of operator ✅")
             sendMessage.replyMarkup=keyboardReplyMarkupHandler.generateReplyMarkup(user)
             execute(sendMessage)
         }

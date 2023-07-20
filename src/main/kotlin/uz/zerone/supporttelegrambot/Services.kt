@@ -11,24 +11,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 Created by Akhmadali
  */
 
-@Service
-class MessageService(
-) {
-
-
-    fun generateInlineMarkup(user: User): InlineKeyboardMarkup {
-        var markup = InlineKeyboardMarkup()
-        var inKeyboardButton = InlineKeyboardButton()
-        if (user.botStep == BotStep.CHOOSE_LANGUAGE) {
-//
-        } else if (user.botStep == BotStep.CHOOSE_LANGUAGE) {
-            //
-        }
-        return markup
-    }
-
-
-}
 
 
 @Service
@@ -62,14 +44,3 @@ class UserService(
 
 }
 
-
-class SessionService(
-) {
-}
-
-
-class FileService(
-) {
-
-
-}
