@@ -63,6 +63,8 @@ class Message(
     var messageType: MessageType,
     var active: Boolean,
     val text: String?,
+    val isReply : Boolean,
+    val replyMessageId:Int?,
 ) : BaseEntity()
 
 @Entity
