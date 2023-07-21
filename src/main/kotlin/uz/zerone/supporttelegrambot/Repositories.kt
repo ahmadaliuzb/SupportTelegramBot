@@ -51,10 +51,7 @@ class BaseRepositoryImpl<T : BaseEntity>(
 
 
 interface UserRepository : BaseRepository<User> {
-    fun existsByUsername(username: String)
     fun findByTelegramId(telegramId: String): User
-
-    fun existsByPhoneNumberAndDeletedFalse(phoneNumber: String):Boolean
 
     @Query(
         value = "select u.*\n" +
@@ -72,7 +69,7 @@ interface UserRepository : BaseRepository<User> {
 
     fun findByTelegramIdAndDeletedFalse(telegramId: String): User
     fun existsByTelegramIdAndDeletedFalse(telegramId: String): Boolean
-    fun findByPhoneNumberAndDeletedFalse(phoneNumber: String): User
+    fun findByPhoneNumberAndDeletedFalse(phoneNumber: String): User?
 }
 
 interface SessionRepository : BaseRepository<Session> {

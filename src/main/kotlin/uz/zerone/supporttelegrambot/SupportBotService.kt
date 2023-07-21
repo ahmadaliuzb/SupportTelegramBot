@@ -264,27 +264,22 @@ class MessageHandlerImpl(
     fun sendLanguageSelection(sendMessage: SendMessage): SendMessage {
         val inlineKeyboardMarkup = InlineKeyboardMarkup()
         val inlineKeyboardButtonsRow = ArrayList<InlineKeyboardButton>()
-        inlineKeyboardButtonsRow.add(
-            InlineKeyboardButton.builder()
-                .text("O`zbek tili \uD83C\uDDFA\uD83C\uDDFF ")
-                .callbackData("uzbek")
-                .build()
-        )
-        inlineKeyboardButtonsRow.add(
-            InlineKeyboardButton.builder().text("Русский \uD83C\uDDF7\uD83C\uDDFA")
-                .callbackData("russian")
-                .build()
+
+        // Create buttons
+        val buttons = listOf(
+            InlineKeyboardButton.builder().text("Uzbek\uD83C\uDDFA\uD83C\uDDFF").callbackData("uzbek").build(),
+            InlineKeyboardButton.builder().text("Russian\uD83C\uDDF7\uD83C\uDDFA").callbackData("russian").build(),
+            InlineKeyboardButton.builder().text("English\uD83C\uDDEC\uD83C\uDDE7").callbackData("english").build()
         )
 
-        inlineKeyboardButtonsRow.add(
-            InlineKeyboardButton.builder().text("English \uD83C\uDDEC\uD83C\uDDE7")
-                .callbackData("english")
-                .build()
-        )
+        // Shuffle the buttons to generate a random order
+        buttons.shuffled().forEach {
+            inlineKeyboardButtonsRow.add(it)
+        }
+
         val inlineKeyboardButtons = ArrayList<List<InlineKeyboardButton>>()
         inlineKeyboardButtons.add(inlineKeyboardButtonsRow)
         inlineKeyboardMarkup.keyboard = inlineKeyboardButtons
-
         sendMessage.replyMarkup = inlineKeyboardMarkup
         return sendMessage
     }
@@ -431,6 +426,7 @@ class UserBotService(
     fun confirmContact(message: Message): SendMessage {
         val user = getOrCreateUser(message)
         user.phoneNumber = message.contact.phoneNumber
+        user.phoneNumber = "+${user.phoneNumber}"
         user.botStep = BotStep.SHOW_MENU
         userRepository.save(user)
         val sendMessage = SendMessage(user.telegramId, "Kerakli bo`limni tanlang ❗\uFE0F")
@@ -730,11 +726,11 @@ class FileBotService(
         else if (message.hasVideo()) {
             message.video.run {
                 saveFileToDisk(
-                    "${fileName}.mp4", getFromTelegram(fileId, getBotToken(), sender)
+                    fileName, getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.VIDEO)
-                val file = createFile(message, "${fileName}.mp4", ContentType.VIDEO)
+                val file = createFile(message, fileName, ContentType.VIDEO)
 
                 if (executive) {
                     val sendVideo = SendVideo(
@@ -919,7 +915,7 @@ class FileBotService(
         else if (message.hasVoice()) {
             message.voice.run {
                 saveFileToDisk(
-                    "${fileUniqueId}.ogg", getFromTelegram(fileId, getBotToken(), sender)
+                    "${fileId}.ogg", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.VOICE)

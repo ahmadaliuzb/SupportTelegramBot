@@ -7,8 +7,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.telegram.telegrambots.meta.TelegramBotsApi
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
 
-@SpringBootApplication
 @EnableJpaAuditing
+@SpringBootApplication
 @EnableJpaRepositories(repositoryBaseClass = BaseRepositoryImpl::class)
 
 class SupportTelegramBotApplication

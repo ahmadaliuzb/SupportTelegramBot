@@ -50,5 +50,5 @@ enum class ContentType{
 }
 
 enum class ErrorCode(val code: Int){
-    USER_NOT_FOUND(101),
+    USER_NOT_FOUND(100)
 }
