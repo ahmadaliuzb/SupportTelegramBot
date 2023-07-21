@@ -99,8 +99,15 @@ class MessageHandlerImpl(
             BotStep.OFFLINE -> {
                 if (message.text == messageSourceService.getMessage(
                         LocalizationTextKey.ONLINE_BUTTON,
-                        languageService.getLanguageOfUser(message.from.id)
+                        Language(LanguageEnum.UZ)
+                    ) || message.text == messageSourceService.getMessage(
+                        LocalizationTextKey.ONLINE_BUTTON,
+                        Language(LanguageEnum.RU)
+                    ) || message.text == messageSourceService.getMessage(
+                        LocalizationTextKey.ONLINE_BUTTON,
+                        Language(LanguageEnum.ENG)
                     )
+
                 ) {
 
                     user.botStep = BotStep.ONLINE
@@ -434,18 +441,22 @@ class CallbackQueryHandlerImpl(
         if (user.phoneNumber != null) {
             user.botStep = BotStep.SHOW_MENU
             userRepository.save(user)
-            sendMessage = SendMessage(user.telegramId, messageSourceService.getMessage(
-                LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
-                languageService.getLanguageOfUser(callbackQuery.from.id)
-            ))
+            sendMessage = SendMessage(
+                user.telegramId, messageSourceService.getMessage(
+                    LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
+                    languageService.getLanguageOfUser(callbackQuery.from.id)
+                )
+            )
             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
         } else {
             user.botStep = BotStep.SHARE_CONTACT
             userRepository.save(user)
-            sendMessage = SendMessage(callbackQuery.message.chatId.toString(), messageSourceService.getMessage(
-                LocalizationTextKey.SHARE_CONTACT_MESSAGE,
-                languageService.getLanguageOfUser(callbackQuery.from.id)
-            ))
+            sendMessage = SendMessage(
+                callbackQuery.message.chatId.toString(), messageSourceService.getMessage(
+                    LocalizationTextKey.SHARE_CONTACT_MESSAGE,
+                    languageService.getLanguageOfUser(callbackQuery.from.id)
+                )
+            )
             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
         }
         return sendMessage
@@ -602,6 +613,7 @@ class KeyboardReplyMarkupHandler(
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
                         }
+
 
                         MessageType.TEXT -> {
                             val sendMessage = s_message.text?.let { text -> SendMessage(chatId, text) }
@@ -818,12 +830,12 @@ class FileBotService(
         if (message.hasDocument()) {
             message.document.run {
                 saveFileToDisk(
-                    fileName, getFromTelegram(fileId, getBotToken(), sender)
+                    fileUniqueId, getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.DOCUMENT)
 
-                val file = createFile(message, fileName, ContentType.DOCUMENT)
+                val file = createFile(message, fileUniqueId, ContentType.DOCUMENT)
 
                 if (executive) {
                     val sendDocument = SendDocument(
@@ -856,11 +868,11 @@ class FileBotService(
         else if (message.hasVideo()) {
             message.video.run {
                 saveFileToDisk(
-                    "${fileName}.mp4", getFromTelegram(fileId, getBotToken(), sender)
+                    "${fileUniqueId}.mp4", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.VIDEO)
-                val file = createFile(message, "${fileName}.mp4", ContentType.VIDEO)
+                val file = createFile(message, "${fileUniqueId}.mp4", ContentType.VIDEO)
 
                 if (executive) {
                     val sendVideo = SendVideo(
@@ -892,11 +904,11 @@ class FileBotService(
         else if (message.hasAudio()) {
             message.audio.run {
                 saveFileToDisk(
-                    fileName, getFromTelegram(fileId, getBotToken(), sender)
+                    fileUniqueId, getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.AUDIO)
-                val file = createFile(message, fileName, ContentType.AUDIO)
+                val file = createFile(message, fileUniqueId, ContentType.AUDIO)
 
                 if (executive) {
                     val sendAudio = SendAudio(
@@ -1109,6 +1121,7 @@ class FileBotService(
                             sendSticker.replyToMessageId = botMessage.receivedMessageId
                         }
                     }
+
 
                     val sendMessageByBot = sender.execute(sendSticker)
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)

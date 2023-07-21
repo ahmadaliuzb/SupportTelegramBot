@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
+import java.io.File
 
 /**
 17/07/2023 - 1:36 PM
@@ -66,3 +67,23 @@ class LanguageService(
         return user.languageList?.get(0) ?: Language(LanguageEnum.UZ)
     }
 }
+
+
+//@Service
+//class LocationService(
+//
+//) {
+//    private fun saveLocationToFile(latitude: Double, longitude: Double) {
+//        val locationJson = "{\"latitude\":$latitude, \"longitude\":$longitude}"
+//
+//        try {
+//            // Write the data to a file on the file system
+//            val file = File("C:\\files\\location_data.json")
+//            file.writeText(locationJson)
+//        } catch (e: Exception) {
+//            // Handle any errors that may occur during file writing
+//            e.printStackTrace()
+//        }
+//    }
+//
+//}
