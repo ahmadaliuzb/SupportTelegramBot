@@ -85,8 +85,3 @@ class BotMessage(
 ) : BaseEntity()
 
 
-@Entity
-class Location(
-    val path: String,
-    @ManyToOne val message: Message
-) : BaseEntity()

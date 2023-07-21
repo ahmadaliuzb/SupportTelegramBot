@@ -279,8 +279,8 @@ class MessageHandlerImpl(
     fun start(message: Message): SendMessage {
         val chatId = userBotService.getChatId(message)
         val sendMessage = SendMessage(
-            chatId, "🤖 Qaysi tilda javob berasiz?"+
-                    "\n\uD83E\uDD16 На каком языке вы отвечаете?"+
+            chatId, "🤖 Qaysi tilda javob berasiz?" +
+                    "\n\uD83E\uDD16 На каком языке вы отвечаете?" +
                     "\n\uD83E\uDD16 What language do you answer in?"
 
         )
@@ -489,7 +489,8 @@ class UserBotService(
         val chatId = getChatId(message)
         if (!userRepository.existsByTelegramIdAndDeletedFalse(chatId)) {
             return userRepository.save(
-                User(message.from.firstName,
+                User(
+                    message.from.firstName,
                     chatId,
                     message.from.userName,
                     null,
@@ -508,7 +509,8 @@ class UserBotService(
         val chatId = getChatId(callbackQuery)
         if (!userRepository.existsByTelegramIdAndDeletedFalse(chatId)) {
             return userRepository.save(
-                User(callbackQuery.from.firstName,
+                User(
+                    callbackQuery.from.firstName,
                     chatId,
                     callbackQuery.from.userName,
                     null,
@@ -530,7 +532,7 @@ class UserBotService(
         val user = getOrCreateUser(message)
         val phoneNumber = message.contact.phoneNumber
 
-        user.phoneNumber = if(phoneNumber.startsWith("+",true))phoneNumber else "+$phoneNumber"
+        user.phoneNumber = if (phoneNumber.startsWith("+", true)) phoneNumber else "+$phoneNumber"
         user.botStep = BotStep.SHOW_MENU
         userRepository.save(user)
         val sendMessage = SendMessage(
@@ -603,7 +605,7 @@ class KeyboardReplyMarkupHandler(
                             val sendVideo =
                                 SendVideo(chatId, InputFile(File(file.path)))
                             sendVideo.replyMarkup = generateReplyMarkup(operator)
-                            sendVideo.caption=file.caption
+                            sendVideo.caption = file.caption
 
                             if (s_message.isReply) {
                                 if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
@@ -623,7 +625,7 @@ class KeyboardReplyMarkupHandler(
                             val sendAudio =
                                 SendAudio(chatId, InputFile(File(file.path)))
                             sendAudio.replyMarkup = generateReplyMarkup(operator)
-                            sendAudio.caption=file.caption
+                            sendAudio.caption = file.caption
 
 
                             if (s_message.isReply) {
@@ -657,7 +659,7 @@ class KeyboardReplyMarkupHandler(
                                     chatId,
                                     InputFile(File(file.path))
                                 )
-                            sendDocument.caption=file.caption
+                            sendDocument.caption = file.caption
 
                             if (s_message.isReply) {
                                 if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
@@ -679,7 +681,7 @@ class KeyboardReplyMarkupHandler(
                                     chatId,
                                     InputFile(File(file.path))
                                 )
-                            sendAnimation.caption=file.caption
+                            sendAnimation.caption = file.caption
 
                             if (s_message.isReply) {
                                 if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
@@ -701,7 +703,7 @@ class KeyboardReplyMarkupHandler(
                                     chatId,
                                     InputFile(File(file.path))
                                 )
-                            sendVoice.caption=file.caption
+                            sendVoice.caption = file.caption
 
                             if (s_message.isReply) {
                                 if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
@@ -973,13 +975,14 @@ class FileBotService(
 
         if (message.hasDocument()) {
             message.document.run {
+
                 saveFileToDisk(
-                    fileUniqueId, getFromTelegram(fileId, getBotToken(), sender)
+                    "$fileUniqueId$fileName", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.DOCUMENT)
 
-                val file = createFile(message, fileUniqueId, ContentType.DOCUMENT)
+                val file = createFile(message, "$fileUniqueId$fileName", ContentType.DOCUMENT)
 
                 if (executive) {
 
@@ -987,7 +990,7 @@ class FileBotService(
                         telegramId!!,
                         InputFile(File(file.path))
                     )
-                    sendDocument.caption=file.caption
+                    sendDocument.caption = file.caption
 
                     if (message.isReply) {
                         if (botMessageRepository.existsByReceivedMessageId(
@@ -1015,11 +1018,11 @@ class FileBotService(
         else if (message.hasVideo()) {
             message.video.run {
                 saveFileToDisk(
-                    "${fileUniqueId}.mp4", getFromTelegram(fileId, getBotToken(), sender)
+                    "$fileUniqueId$fileName", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.VIDEO)
-                val file = createFile(message, "${fileUniqueId}.mp4", ContentType.VIDEO)
+                val file = createFile(message, "$fileUniqueId$fileName", ContentType.VIDEO)
 
                 if (executive) {
                     val sendVideo = SendVideo(
@@ -1027,7 +1030,7 @@ class FileBotService(
                         InputFile(File(file.path))
                     )
 
-                    sendVideo.caption=file.caption
+                    sendVideo.caption = file.caption
 
                     if (message.isReply) {
                         if (botMessageRepository.existsByReceivedMessageId(
@@ -1054,11 +1057,11 @@ class FileBotService(
         else if (message.hasAudio()) {
             message.audio.run {
                 saveFileToDisk(
-                    fileName, getFromTelegram(fileId, getBotToken(), sender)
+                    "$fileUniqueId$fileName", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.AUDIO)
-                val file = createFile(message, fileName, ContentType.AUDIO)
+                val file = createFile(message, "$fileUniqueId$fileName", ContentType.AUDIO)
 
                 if (executive) {
                     val sendAudio = SendAudio(
@@ -1066,7 +1069,7 @@ class FileBotService(
                         InputFile(File(file.path))
                     )
 
-                    sendAudio.caption=file.caption
+                    sendAudio.caption = file.caption
 
                     if (message.isReply) {
                         if (botMessageRepository.existsByReceivedMessageId(
@@ -1092,6 +1095,7 @@ class FileBotService(
         }
         //for videoNote
         else if (message.hasVideoNote()) {
+
             message.videoNote.run {
                 saveFileToDisk(
                     "${fileUniqueId}.mp4", getFromTelegram(fileId, getBotToken(), sender)
@@ -1172,18 +1176,18 @@ class FileBotService(
         else if (message.hasAnimation()) {
             message.animation.run {
                 saveFileToDisk(
-                    "${fileUniqueId}.gif", getFromTelegram(fileId, getBotToken(), sender)
+                    "$fileUniqueId$fileName", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.ANIMATION)
-                val file = createFile(message, "${fileUniqueId}.gif", ContentType.ANIMATION)
+                val file = createFile(message, "$fileUniqueId$fileName", ContentType.ANIMATION)
 
                 if (executive) {
                     val sendAnimation = SendAnimation(
                         telegramId!!,
                         InputFile(File(file.path))
                     )
-                    sendAnimation.caption=file.caption
+                    sendAnimation.caption = file.caption
 
                     if (message.isReply) {
                         if (botMessageRepository.existsByReceivedMessageId(
@@ -1211,6 +1215,7 @@ class FileBotService(
         //for voice
         else if (message.hasVoice()) {
             message.voice.run {
+
                 saveFileToDisk(
                     "${fileUniqueId}.ogg", getFromTelegram(fileId, getBotToken(), sender)
                 )
@@ -1224,7 +1229,7 @@ class FileBotService(
                         InputFile(File(file.path))
                     )
 
-                    sendVoice.caption=file.caption
+                    sendVoice.caption = file.caption
 
                     if (message.isReply) {
                         if (botMessageRepository.existsByReceivedMessageId(
@@ -1253,13 +1258,21 @@ class FileBotService(
         else if (message.hasSticker()) {
             val sticker = message.sticker
 
+            val fileExtension = when {
+                sticker.isAnimated -> ".tgs"
+                sticker.isVideo->".webm"
+                else -> ".webp"
+            }
+
+
+
             sticker.run {
                 saveFileToDisk(
-                    "${fileUniqueId}.tgs", getFromTelegram(fileId, getBotToken(), sender)
+                    "${fileUniqueId}${fileExtension}", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.STICKER)
-                val file = createFile(message, "${fileUniqueId}.tgs", ContentType.STICKER)
+                val file = createFile(message, "${fileUniqueId}${fileExtension}", ContentType.STICKER)
                 if (executive) {
                     val sendSticker = SendSticker(
                         telegramId!!,

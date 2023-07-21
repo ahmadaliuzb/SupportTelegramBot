@@ -110,7 +110,4 @@ interface BotMessageRepository : BaseRepository<BotMessage> {
     fun findByTelegramMessageId(telegramMessageId: Int):BotMessage
 }
 
-interface LocationRepository:BaseRepository<Location>{
-    fun findByPath(path: String):Location
-}
 
