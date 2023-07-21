@@ -437,7 +437,6 @@ class KeyboardReplyMarkupHandler(
         }
         else if(user.botStep == BotStep.OFFLINE && user.role == Role.OPERATOR){
             row1Button1.text = "ON"
-            row1Button1
             row1.add(row1Button1)
             rowList.add(row1)
         }
