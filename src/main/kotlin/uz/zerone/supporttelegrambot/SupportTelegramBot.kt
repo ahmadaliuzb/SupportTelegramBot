@@ -9,9 +9,7 @@ import org.telegram.telegrambots.meta.api.objects.Update
 class SupportTelegramBot(
     private val messageHandler: MessageHandler,
     private val callbackQueryHandler: CallbackQueryHandler,
-    private val userRepository: UserRepository,
-    private val languageRepository: LanguageRepository,
-    private val keyboardReplyMarkupHandler: KeyboardReplyMarkupHandler,
+
 ) : TelegramLongPollingBot() {
 
     override fun getBotUsername(): String = "zeroone4bot"
@@ -26,29 +24,6 @@ class SupportTelegramBot(
 
     }
 
-    fun notificationOperator(dto: UserUpdateDto) {
-        val languages = mutableListOf<Language>()
-        for (languageDto in dto.languageList) {
-            when (languageDto) {
-                "UZ" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.UZ))
-                "RU" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.RU))
-                "ENG" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.ENG))
-            }
-        }
-
-        dto.run {
-            val user = userRepository.findByPhoneNumberAndDeletedFalse(phoneNumber)
-            user.phoneNumber = phoneNumber
-            user.languageList = languages
-            user.role = Role.OPERATOR
-            user.botStep=BotStep.OFFLINE
-            userRepository.save(user)
-            val sendMessage = SendMessage(user.telegramId,"You have been assigned to the position of operator ✅")
-            sendMessage.replyMarkup=keyboardReplyMarkupHandler.generateReplyMarkup(user)
-            execute(sendMessage)
-        }
-
-    }
 }
 
 
