@@ -99,11 +99,18 @@ class MessageHandlerImpl(
             BotStep.OFFLINE -> {
                 if (message.text == messageSourceService.getMessage(
                         LocalizationTextKey.ONLINE_BUTTON,
-                        languageService.getLanguageOfUser(message.from.id)
+                        Language(LanguageEnum.UZ)
+                    ) || message.text == messageSourceService.getMessage(
+                        LocalizationTextKey.ONLINE_BUTTON,
+                        Language(LanguageEnum.RU)
+                    ) || message.text == messageSourceService.getMessage(
+                        LocalizationTextKey.ONLINE_BUTTON,
+                        Language(LanguageEnum.ENG)
                     )
                 ) {
 
                     user.botStep = BotStep.ONLINE
+                    user.online = false
                     userRepository.save(user)
 
                     val sendMessage = SendMessage(
@@ -267,6 +274,7 @@ class MessageHandlerImpl(
                 }
             }
 
+            else -> {}
         }
     }
 
@@ -359,7 +367,10 @@ class MessageHandlerImpl(
         val messageId = message.messageId
 
         val saveMessage =
-            Message(messageId, session, user, messageType, true, message.text)
+            Message(
+                messageId, session, user, messageType, true, message.text, message.isReply,
+                if (message.isReply) message.replyToMessage.messageId else null
+            )
         messageRepository.save(saveMessage)
         return messageId
     }
@@ -386,29 +397,41 @@ class CallbackQueryHandlerImpl(
                 sender.execute(chooseLanguage(callbackQuery))
             }
 
-            BotStep.ASSESSMENT -> sender.execute(chooseRate(callbackQuery))
+            BotStep.ASSESSMENT -> sender.execute(chooseRate(callbackQuery, sender))
             else -> {}
         }
     }
 
 
-    fun chooseRate(callbackQuery: CallbackQuery): SendMessage {
+    fun chooseRate(callbackQuery: CallbackQuery, sender: AbsSender): SendMessage {
         val data = callbackQuery.data
         val updatedSession = sessionRepository.findByIdAndDeletedFalse(data.substring(1).toLong())
         updatedSession!!.rate = data.elementAt(0).toString().toShort()
 
         val updatedUser = updatedSession.user
 
-        updatedUser.botStep = BotStep.ONLINE
+        updatedUser.botStep = BotStep.SHOW_MENU
+        userRepository.save(updatedUser)
+        val chatId = userBotService.getChatId(callbackQuery)
 
-        //Savol berish va sozlash buttonlarini yuborish
+        sender.execute(
+            SendMessage(
+                callbackQuery.message.chatId.toString(), messageSourceService.getMessage(
+                    LocalizationTextKey.THANK_MESSAGE,
+                    languageService.getLanguageOfUser(callbackQuery.from.id)
+                )
+            )
+        )
 
-        return SendMessage(
-            callbackQuery.message.chatId.toString(), messageSourceService.getMessage(
-                LocalizationTextKey.THANK_MESSAGE,
+        val sendMessage = SendMessage(
+            chatId, messageSourceService.getMessage(
+                LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
                 languageService.getLanguageOfUser(callbackQuery.from.id)
             )
         )
+        sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(updatedUser)
+        return sendMessage
+
     }
 
     fun chooseLanguage(callbackQuery: CallbackQuery): SendMessage {
@@ -434,18 +457,22 @@ class CallbackQueryHandlerImpl(
         if (user.phoneNumber != null) {
             user.botStep = BotStep.SHOW_MENU
             userRepository.save(user)
-            sendMessage = SendMessage(user.telegramId, messageSourceService.getMessage(
-                LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
-                languageService.getLanguageOfUser(callbackQuery.from.id)
-            ))
+            sendMessage = SendMessage(
+                user.telegramId, messageSourceService.getMessage(
+                    LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
+                    languageService.getLanguageOfUser(callbackQuery.from.id)
+                )
+            )
             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
         } else {
             user.botStep = BotStep.SHARE_CONTACT
             userRepository.save(user)
-            sendMessage = SendMessage(callbackQuery.message.chatId.toString(), messageSourceService.getMessage(
-                LocalizationTextKey.SHARE_CONTACT_MESSAGE,
-                languageService.getLanguageOfUser(callbackQuery.from.id)
-            ))
+            sendMessage = SendMessage(
+                callbackQuery.message.chatId.toString(), messageSourceService.getMessage(
+                    LocalizationTextKey.SHARE_CONTACT_MESSAGE,
+                    languageService.getLanguageOfUser(callbackQuery.from.id)
+                )
+            )
             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
         }
         return sendMessage
@@ -565,6 +592,16 @@ class KeyboardReplyMarkupHandler(
                             val sendVideo =
                                 SendVideo(chatId, InputFile(File(file.path)))
                             sendVideo.replyMarkup = generateReplyMarkup(operator)
+
+
+                            if (s_message.isReply) {
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                    val botMessage =
+                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                    sendVideo.replyToMessageId = botMessage.telegramMessageId
+                                }
+                            }
+
                             val sendMessageByBot = sender.execute(sendVideo)
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
@@ -575,6 +612,15 @@ class KeyboardReplyMarkupHandler(
                             val sendAudio =
                                 SendAudio(chatId, InputFile(File(file.path)))
                             sendAudio.replyMarkup = generateReplyMarkup(operator)
+
+                            if (s_message.isReply) {
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                    val botMessage =
+                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                    sendAudio.replyToMessageId = botMessage.telegramMessageId
+                                }
+                            }
+
                             val sendMessageByBot = sender.execute(sendAudio)
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
@@ -586,6 +632,15 @@ class KeyboardReplyMarkupHandler(
                             val sendPhoto =
                                 SendPhoto(chatId, InputFile(File(file.path)))
                             sendPhoto.replyMarkup = generateReplyMarkup(operator)
+
+                            if (s_message.isReply) {
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                    val botMessage =
+                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                    sendPhoto.replyToMessageId = botMessage.telegramMessageId
+                                }
+                            }
+
                             val sendMessageByBot = sender.execute(sendPhoto)
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
@@ -598,22 +653,121 @@ class KeyboardReplyMarkupHandler(
                                     chatId,
                                     InputFile(File(file.path))
                                 )
+
+                            if (s_message.isReply) {
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                    val botMessage =
+                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                    sendDocument.replyToMessageId = botMessage.telegramMessageId
+                                }
+                            }
+
                             val sendMessageByBot = sender.execute(sendDocument)
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
                         }
 
-                        MessageType.TEXT -> {
-                            val sendMessage = s_message.text?.let { text -> SendMessage(chatId, text) }
-                            if (sendMessage != null) {
-                                sendMessage.replyMarkup = generateReplyMarkup(operator)
+                        MessageType.ANIMATION -> {
+                            val file = fileRepository.findByMessageId(s_message.id!!)
+                            val sendAnimation =
+                                SendAnimation(
+                                    chatId,
+                                    InputFile(File(file.path))
+                                )
+
+                            if (s_message.isReply) {
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                    val botMessage =
+                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                    sendAnimation.replyToMessageId = botMessage.telegramMessageId
+                                }
                             }
-                            val sendMessageByBot = sender.execute(sendMessage)
+
+                            val sendMessageByBot = sender.execute(sendAnimation)
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
                         }
 
-                        else -> {}
+                        MessageType.VOICE -> {
+                            val file = fileRepository.findByMessageId(s_message.id!!)
+                            val sendVoice =
+                                SendVoice(
+                                    chatId,
+                                    InputFile(File(file.path))
+                                )
+
+                            if (s_message.isReply) {
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                    val botMessage =
+                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                    sendVoice.replyToMessageId = botMessage.telegramMessageId
+                                }
+                            }
+
+                            val sendMessageByBot = sender.execute(sendVoice)
+                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                            botMessageRepository.save(botMessage)
+                        }
+
+                        MessageType.VIDEO_NOTE -> {
+                            val file = fileRepository.findByMessageId(s_message.id!!)
+                            val sendVideoNote =
+                                SendVideoNote(
+                                    chatId,
+                                    InputFile(File(file.path))
+                                )
+
+                            if (s_message.isReply) {
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                    val botMessage =
+                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                    sendVideoNote.replyToMessageId = botMessage.telegramMessageId
+                                }
+                            }
+
+                            val sendMessageByBot = sender.execute(sendVideoNote)
+                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                            botMessageRepository.save(botMessage)
+                        }
+
+                        MessageType.STICKER -> {
+                            val file = fileRepository.findByMessageId(s_message.id!!)
+                            val sendSticker =
+                                SendSticker(
+                                    chatId,
+                                    InputFile(File(file.path))
+                                )
+
+                            if (s_message.isReply) {
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                    val botMessage =
+                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                    sendSticker.replyToMessageId = botMessage.telegramMessageId
+                                }
+                            }
+
+                            val sendMessageByBot = sender.execute(sendSticker)
+                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                            botMessageRepository.save(botMessage)
+                        }
+
+
+                        MessageType.TEXT -> {
+                            val sendMessage = SendMessage(chatId, s_message.text!!)
+                            sendMessage.replyMarkup = generateReplyMarkup(operator)
+
+                            if (s_message.isReply) {
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                    val botMessage =
+                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                    sendMessage.replyToMessageId = botMessage.telegramMessageId
+                                }
+                            }
+
+                            val sendMessageByBot = sender.execute(sendMessage)
+                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                            botMessageRepository.save(botMessage)
+                        }
                     }
                     session.user.botStep = BotStep.FULL_SESSION
                     userRepository.save(session.user)
@@ -1089,7 +1243,7 @@ class FileBotService(
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.STICKER)
-                val file = createFile(message, "${fileUniqueId}.webp", ContentType.PHOTO)
+                val file = createFile(message, "${fileUniqueId}.webp", ContentType.STICKER)
                 if (executive) {
                     val sendSticker = SendSticker(
                         telegramId!!,
@@ -1157,7 +1311,7 @@ class FileBotService(
         fileOutputStream.close()
     }
 
-    fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
+    fun getBotToken() = "6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s"
 
     fun createFile(message: Message, name: String, contentType: ContentType): uz.zerone.supporttelegrambot.File {
         val fileMessage = messageRepository.findByTelegramMessageIdAndDeletedFalse(message.messageId)

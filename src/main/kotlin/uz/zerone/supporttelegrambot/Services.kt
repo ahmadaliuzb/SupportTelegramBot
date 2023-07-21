@@ -58,8 +58,7 @@ class MessageSourceService(val messageResourceBundleMessageSource: ResourceBundl
 
 @Service
 class LanguageService(
-    private val languageRepository: LanguageRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
 ) {
     fun getLanguageOfUser(id: Long): Language {
         val user = userRepository.findByTelegramIdAndDeletedFalse(id.toString())
