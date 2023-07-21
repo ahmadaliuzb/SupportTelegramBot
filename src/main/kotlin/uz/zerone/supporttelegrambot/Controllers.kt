@@ -36,4 +36,7 @@ class UserController(
     @PutMapping
     fun update(@RequestBody dto: UserUpdateDto) = userService.update(dto)
 
+
+//    @GetMapping("/total-rate")
+//    fun totalRate(pageable: Pageable) = userService.totalRate(pageable)
 }

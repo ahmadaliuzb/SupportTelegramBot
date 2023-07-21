@@ -531,7 +531,9 @@ class UserBotService(
     fun confirmContact(message: Message): SendMessage {
         val user = getOrCreateUser(message)
         user.phoneNumber = message.contact.phoneNumber
-        user.phoneNumber = "+${user.phoneNumber}"
+        if (user.phoneNumber?.get(0)!! != '+'){
+            user.phoneNumber = "+${user.phoneNumber}"
+        }
         user.botStep = BotStep.SHOW_MENU
         userRepository.save(user)
         val sendMessage = SendMessage(
@@ -968,12 +970,12 @@ class FileBotService(
         if (message.hasDocument()) {
             message.document.run {
                 saveFileToDisk(
-                    fileName, getFromTelegram(fileId, getBotToken(), sender)
+                    fileUniqueId, getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.DOCUMENT)
 
-                val file = createFile(message, fileName, ContentType.DOCUMENT)
+                val file = createFile(message, fileUniqueId, ContentType.DOCUMENT)
 
                 if (executive) {
                     val sendDocument = SendDocument(
@@ -1006,11 +1008,11 @@ class FileBotService(
         else if (message.hasVideo()) {
             message.video.run {
                 saveFileToDisk(
-                    fileName, getFromTelegram(fileId, getBotToken(), sender)
+                    "${fileUniqueId}.mp4", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.VIDEO)
-                val file = createFile(message, fileName, ContentType.VIDEO)
+                val file = createFile(message, "${fileUniqueId}.mp4", ContentType.VIDEO)
 
                 if (executive) {
                     val sendVideo = SendVideo(
@@ -1042,11 +1044,11 @@ class FileBotService(
         else if (message.hasAudio()) {
             message.audio.run {
                 saveFileToDisk(
-                    fileName, getFromTelegram(fileId, getBotToken(), sender)
+                    "${fileUniqueId}.mp3", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.AUDIO)
-                val file = createFile(message, fileName, ContentType.AUDIO)
+                val file = createFile(message, "${fileUniqueId}.mp3", ContentType.AUDIO)
 
                 if (executive) {
                     val sendAudio = SendAudio(
@@ -1195,7 +1197,7 @@ class FileBotService(
         else if (message.hasVoice()) {
             message.voice.run {
                 saveFileToDisk(
-                    "${fileId}.ogg", getFromTelegram(fileId, getBotToken(), sender)
+                    "${fileUniqueId}.ogg", getFromTelegram(fileId, getBotToken(), sender)
                 )
 
                 val receivedId = messageHandler.createMessage(message, session, MessageType.VOICE)
@@ -1307,7 +1309,7 @@ class FileBotService(
         fileOutputStream.close()
     }
 
-    fun getBotToken() = "6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s"
+    fun getBotToken() = "6300162247:AAEV4HccaFlyrsE-OmOaIuxijkV98saBnko"
 
     fun createFile(message: Message, name: String, contentType: ContentType): uz.zerone.supporttelegrambot.File {
         val fileMessage = messageRepository.findByTelegramMessageIdAndDeletedFalse(message.messageId)
