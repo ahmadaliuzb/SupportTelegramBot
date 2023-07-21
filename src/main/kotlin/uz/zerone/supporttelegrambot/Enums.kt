@@ -9,9 +9,9 @@ enum class Role {
     USER, ADMIN, OPERATOR
 }
 
-enum class LanguageEnum {
+enum class LanguageEnum(val code: String) {
 
-    UZ, ENG, RU
+    UZ("uz"), ENG("eng"), RU("ru")
 }
 
 enum class MessageType {
@@ -26,7 +26,7 @@ enum class MessageType {
     TEXT
 }
 
-enum class BotStep{
+enum class BotStep {
     START,
     CHOOSE_LANGUAGE,
     SHARE_CONTACT,
@@ -38,7 +38,7 @@ enum class BotStep{
     ASSESSMENT
 }
 
-enum class ContentType{
+enum class ContentType {
     DOCUMENT,
     VIDEO,
     AUDIO,
@@ -49,6 +49,30 @@ enum class ContentType{
     STICKER
 }
 
-enum class ErrorCode(val code: Int){
+enum class ErrorCode(val code: Int) {
     USER_NOT_FOUND(101),
+}
+
+enum class LocalizationTextKey() {
+
+    SHARE_CONTACT_BUTTON,
+    SHARE_CONTACT_MESSAGE,
+    CHOOSE_SECTION_MESSAGE,
+    SETTINGS_BUTTON,
+    QUESTION_BUTTON,
+    CHOOSE_LANGUAGE_MESSAGE,
+    ASSIGN_OPERATOR_MESSAGE,
+    ONLINE_BUTTON,
+    OFFLINE_BUTTON,
+    START_MESSAGING_MESSAGE,
+    CONNECT_OPERATOR_MESSAGE,
+    CONNECT_USER_MESSAGE,
+    OPERATOR_CLOSE_BUTTON,
+    OPERATOR_CLOSE_AND_OFFLINE_BUTTON,
+    ONLINE_MESSAGE,
+    DISCONNECTED_MESSAGE,
+    CHOOSE_RATE_MESSAGE,
+    OFFLINE_MESSAGE,
+    THANK_MESSAGE,
+    WAIT_FOR_OPERATOR_MESSAGE
 }
