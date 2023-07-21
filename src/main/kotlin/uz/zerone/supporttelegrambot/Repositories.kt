@@ -72,16 +72,18 @@ interface UserRepository : BaseRepository<User> {
 
     fun findByTelegramIdAndDeletedFalse(telegramId: String): User
     fun existsByTelegramIdAndDeletedFalse(telegramId: String): Boolean
-    fun findByPhoneNumberAndDeletedFalse(phoneNumber: String): User
+    fun findByPhoneNumberAndDeletedFalse(phoneNumber: String): User?
 }
 
 interface SessionRepository : BaseRepository<Session> {
-    fun findByUserIdAndOperatorId(user_id: Long, operator_id: Long): Optional<Session>
+
     fun findByUserTelegramIdAndActiveTrue(user_telegramId: String): Session
 
     fun findByOperatorTelegramIdAndActiveTrue(operator_telegramId: String): Session
 
     fun findByActiveTrueAndOperatorIsNullOrderByCreatedDateAsc(): MutableList<Session>
+
+    fun findAllByUserTelegramIdAndActiveTrue(user_telegramId: String):MutableList<Session>
 }
 
 

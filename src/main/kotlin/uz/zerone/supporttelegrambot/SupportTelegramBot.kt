@@ -9,14 +9,12 @@ import org.telegram.telegrambots.meta.api.objects.Update
 class SupportTelegramBot(
     private val messageHandler: MessageHandler,
     private val callbackQueryHandler: CallbackQueryHandler,
-    private val userRepository: UserRepository,
-    private val languageRepository: LanguageRepository,
-    private val keyboardReplyMarkupHandler: KeyboardReplyMarkupHandler,
+
 ) : TelegramLongPollingBot() {
 
-    override fun getBotUsername(): String = "session_support_bot"
+    override fun getBotUsername(): String = "zeroone4bot"
 
-    override fun getBotToken() = "6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s"
+    override fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
 
     override fun onUpdateReceived(update: Update) {
         when {
@@ -26,29 +24,6 @@ class SupportTelegramBot(
 
     }
 
-    fun notificationOperator(dto: UserUpdateDto) {
-        val languages = mutableListOf<Language>()
-        for (languageDto in dto.languageList) {
-            when (languageDto) {
-                "UZ" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.UZ))
-                "RU" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.RU))
-                "ENG" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.ENG))
-            }
-        }
-
-        dto.run {
-            val user = userRepository.findByPhoneNumberAndDeletedFalse(phoneNumber)
-            user.phoneNumber = phoneNumber
-            user.languageList = languages
-            user.role = Role.OPERATOR
-            user.botStep=BotStep.OFFLINE
-            userRepository.save(user)
-            val sendMessage = SendMessage(user.telegramId,"You have been assigned to the position of operator ✅")
-            sendMessage.replyMarkup=keyboardReplyMarkupHandler.generateReplyMarkup(user)
-            execute(sendMessage)
-        }
-
-    }
 }
 
 
