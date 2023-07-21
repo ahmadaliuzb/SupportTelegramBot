@@ -11,30 +11,12 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 Created by Akhmadali
  */
 
-@Service
-class MessageService(
-) {
-
-
-    fun generateInlineMarkup(user: User): InlineKeyboardMarkup {
-        var markup = InlineKeyboardMarkup()
-        var inKeyboardButton = InlineKeyboardButton()
-        if (user.botStep == BotStep.CHOOSE_LANGUAGE) {
-//
-        } else if (user.botStep == BotStep.CHOOSE_LANGUAGE) {
-            //
-        }
-        return markup
-    }
-
-
-}
 
 
 @Service
 class UserService(
     private val userRepository: UserRepository,
-    private val languageRepository: LanguageRepository
+    private val languageRepository: LanguageRepository,
 ) {
     fun getAll(pageable: Pageable): Page<UsersList> {
         return userRepository.findAllNotDeleted(pageable).map { UsersList.toDto(it) }
@@ -59,16 +41,6 @@ class UserService(
         }
 
     }
-}
-
-
-class SessionService(
-) {
-}
-
-
-class FileService(
-) {
-
 
 }
+

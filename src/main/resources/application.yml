@@ -1,11 +1,11 @@
 server:
-  port: 8890
+  port: 8080
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://localhost:5432/support_bot
     username: postgres
-    password: root123
+    password: ahmadali1976
 
 
   jpa:
