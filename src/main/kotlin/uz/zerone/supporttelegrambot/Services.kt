@@ -4,17 +4,18 @@ import org.springframework.context.support.ResourceBundleMessageSource
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
 /**
 17/07/2023 - 1:36 PM
 Created by Akhmadali
  */
 
+
 interface UserService {
     fun getAll(pageable: Pageable): Page<UsersList>
     fun update(dto: UserUpdateDto)
-//    fun totalRate(pageable: Pageable): Page<TotalOperatorRate>
 }
 
 @Service
@@ -23,8 +24,9 @@ class UserServiceImpl(
     private val languageRepository: LanguageRepository,
     private val keyboardReplyMarkupHandler: KeyboardReplyMarkupHandler,
     private val telegramBot: SupportTelegramBot,
+    private val messageSourceService: MessageSourceService,
+    private val languageService: LanguageService,
     private val sessionRepository: SessionRepository
-
 ) : UserService {
     override fun getAll(pageable: Pageable): Page<UsersList> {
         return userRepository.findAllNotDeleted(pageable).map { UsersList.toDto(it) }
@@ -41,28 +43,35 @@ class UserServiceImpl(
         }
 
 
-
         val user = userRepository.findByPhoneNumberAndDeletedFalse(dto.phoneNumber)
-            ?:throw UserNotFoundException(dto.phoneNumber)
+            ?: throw UserNotFoundException(dto.phoneNumber)
 
         dto.run {
-            phoneNumber.let { user.phoneNumber = it }
+            val user = userRepository.findByPhoneNumberAndDeletedFalse(phoneNumber)
+            user.phoneNumber = phoneNumber
             user.languageList = languages
             user.role = Role.OPERATOR
             user.botStep = BotStep.OFFLINE
+            user.online = true
         }
-        userRepository.save(user)
-        val sendMessage = SendMessage(user.telegramId,"You have been assigned to the position of operator ✅")
-        sendMessage.replyMarkup=keyboardReplyMarkupHandler.generateReplyMarkup(user)
-       telegramBot.execute(sendMessage)
 
+        userRepository.save(user)
+        val sessions =
+            sessionRepository.findAllByUserTelegramIdAndActiveTrue(user.telegramId)
+        sessions.forEach { it.active = false }
+        sessionRepository.saveAll(sessions)
+
+        val sendMessage = SendMessage(
+            user.telegramId, messageSourceService.getMessage(
+                LocalizationTextKey.ASSIGN_OPERATOR_MESSAGE,
+                languageService.getLanguageOfUser(user.telegramId.toLong())
+            )
+        )
+        sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+        telegramBot.execute(sendMessage)
 
 
     }
-
-//    override fun totalRate(pageable: Pageable): Page<TotalOperatorRate> {
-//        return sessionRepository.totalOperatorRate(pageable).map { TotalOperatorRate.toDto(pageable) }
-//    }
 
 }
 

@@ -11,7 +11,6 @@ import org.springframework.data.jpa.repository.support.JpaEntityInformation
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository
 import org.springframework.data.repository.NoRepositoryBean
 import org.springframework.data.repository.findByIdOrNull
-import java.util.Objects
 import java.util.Optional
 import javax.persistence.EntityManager
 import javax.transaction.Transactional
@@ -52,7 +51,10 @@ class BaseRepositoryImpl<T : BaseEntity>(
 
 
 interface UserRepository : BaseRepository<User> {
+    fun existsByUsername(username: String)
     fun findByTelegramId(telegramId: String): User
+
+    fun existsByPhoneNumberAndDeletedFalse(phoneNumber: String):Boolean
 
     @Query(
         value = "select u.*\n" +
@@ -74,15 +76,14 @@ interface UserRepository : BaseRepository<User> {
 }
 
 interface SessionRepository : BaseRepository<Session> {
-    @Query("SELECT operator_id, ROUND(AVG(rate),1)" +
-            " AS total_rate FROM session GROUP BY operator_id", nativeQuery = true)
-    fun totalOperatorRate()
-    fun findByUserIdAndOperatorId(user_id: Long, operator_id: Long): Optional<Session>
+
     fun findByUserTelegramIdAndActiveTrue(user_telegramId: String): Session
 
     fun findByOperatorTelegramIdAndActiveTrue(operator_telegramId: String): Session
 
     fun findByActiveTrueAndOperatorIsNullOrderByCreatedDateAsc(): MutableList<Session>
+
+    fun findAllByUserTelegramIdAndActiveTrue(user_telegramId: String):MutableList<Session>
 }
 
 

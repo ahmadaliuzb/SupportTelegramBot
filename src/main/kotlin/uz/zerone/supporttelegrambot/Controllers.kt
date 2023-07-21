@@ -14,10 +14,8 @@ class ExceptionHandlers(
     @ExceptionHandler(DemoException::class)
     fun handleException(exception: DemoException): ResponseEntity<*>{
         return when(exception){
-            is UserNotFoundException -> {
-                ResponseEntity.badRequest()
-                    .body(exception.getErrorMessage(errorMessageSource, exception.phoneNumber))
-            }
+            is UserNotFoundException -> ResponseEntity.badRequest()
+                .body(exception.getErrorMessage(errorMessageSource, exception.phoneNumber))
         }
     }
 }
@@ -37,6 +35,4 @@ class UserController(
     fun update(@RequestBody dto: UserUpdateDto) = userService.update(dto)
 
 
-//    @GetMapping("/total-rate")
-//    fun totalRate(pageable: Pageable) = userService.totalRate(pageable)
 }
