@@ -29,6 +29,7 @@ class Language(
 
 @Entity(name = "users")
 class User(
+    var firstName: String,
     @Column(unique = true)
     var telegramId: String,
     @Column(unique = true)
@@ -72,6 +73,7 @@ class File(
     var path: String,
     var contentType: ContentType,
     @ManyToOne val message: Message,
+    val caption:String?
 ) : BaseEntity()
 
 //

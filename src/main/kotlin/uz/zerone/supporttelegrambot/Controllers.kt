@@ -10,10 +10,10 @@ import org.springframework.web.bind.annotation.*
 @ControllerAdvice
 class ExceptionHandlers(
     private val errorMessageSource: ResourceBundleMessageSource
-){
+) {
     @ExceptionHandler(DemoException::class)
-    fun handleException(exception: DemoException): ResponseEntity<*>{
-        return when(exception){
+    fun handleException(exception: DemoException): ResponseEntity<*> {
+        return when (exception) {
             is UserNotFoundException -> ResponseEntity.badRequest()
                 .body(exception.getErrorMessage(errorMessageSource, exception.phoneNumber))
         }
@@ -21,11 +21,9 @@ class ExceptionHandlers(
 }
 
 
-
 @RestController
 @RequestMapping("api/user")
 class UserController(
-    private val telegramBot: SupportTelegramBot,
     private val userService: UserService
 ) {
 
@@ -33,6 +31,7 @@ class UserController(
     fun getAll(pageable: Pageable): Page<UsersList> = userService.getAll(pageable)
 
     @PutMapping
-    fun update(@RequestBody dto: UserUpdateDto) = telegramBot.notificationOperator(dto)
+    fun update(@RequestBody dto: UserUpdateDto) = userService.update(dto)
+
 
 }

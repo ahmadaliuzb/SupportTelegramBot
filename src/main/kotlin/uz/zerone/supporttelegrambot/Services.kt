@@ -4,6 +4,7 @@ import org.springframework.context.support.ResourceBundleMessageSource
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
@@ -13,16 +14,26 @@ Created by Akhmadali
  */
 
 
+interface UserService {
+    fun getAll(pageable: Pageable): Page<UsersList>
+    fun update(dto: UserUpdateDto)
+}
+
 @Service
-class UserService(
+class UserServiceImpl(
     private val userRepository: UserRepository,
     private val languageRepository: LanguageRepository,
-) {
-    fun getAll(pageable: Pageable): Page<UsersList> {
+    private val keyboardReplyMarkupHandler: KeyboardReplyMarkupHandler,
+    private val telegramBot: SupportTelegramBot,
+    private val messageSourceService: MessageSourceService,
+    private val languageService: LanguageService,
+    private val sessionRepository: SessionRepository
+) : UserService {
+    override fun getAll(pageable: Pageable): Page<UsersList> {
         return userRepository.findAllNotDeleted(pageable).map { UsersList.toDto(it) }
     }
 
-    fun update(dto: UserUpdateDto) {
+    override fun update(dto: UserUpdateDto) {
         val languages = mutableListOf<Language>()
         for (languageDto in dto.languageList) {
             when (languageDto) {
@@ -32,13 +43,33 @@ class UserService(
             }
         }
 
+
+        val user = userRepository.findByPhoneNumberAndDeletedFalse(dto.phoneNumber)
+            ?: throw UserNotFoundException(dto.phoneNumber)
+
         dto.run {
-            val user = userRepository.findByPhoneNumberAndDeletedFalse(phoneNumber)
-            user.phoneNumber = phoneNumber
+            phoneNumber.let { user.phoneNumber = it }
             user.languageList = languages
             user.role = Role.OPERATOR
-            userRepository.save(user)
+            user.botStep = BotStep.OFFLINE
+            user.online = true
         }
+
+        userRepository.save(user)
+        val sessions =
+            sessionRepository.findAllByUserTelegramIdAndActiveTrue(user.telegramId)
+        sessions.forEach { it.active = false }
+        sessionRepository.saveAll(sessions)
+
+        val sendMessage = SendMessage(
+            user.telegramId, messageSourceService.getMessage(
+                LocalizationTextKey.ASSIGN_OPERATOR_MESSAGE,
+                languageService.getLanguageOfUser(user.telegramId.toLong())
+            )
+        )
+        sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+        telegramBot.execute(sendMessage)
+
 
     }
 
