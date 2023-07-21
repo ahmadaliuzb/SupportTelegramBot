@@ -99,11 +99,18 @@ class MessageHandlerImpl(
             BotStep.OFFLINE -> {
                 if (message.text == messageSourceService.getMessage(
                         LocalizationTextKey.ONLINE_BUTTON,
-                        languageService.getLanguageOfUser(message.from.id)
+                        Language(LanguageEnum.UZ)
+                    ) || message.text == messageSourceService.getMessage(
+                        LocalizationTextKey.ONLINE_BUTTON,
+                        Language(LanguageEnum.RU)
+                    ) || message.text == messageSourceService.getMessage(
+                        LocalizationTextKey.ONLINE_BUTTON,
+                        Language(LanguageEnum.ENG)
                     )
                 ) {
 
                     user.botStep = BotStep.ONLINE
+                    user.online = false
                     userRepository.save(user)
 
                     val sendMessage = SendMessage(
@@ -267,6 +274,7 @@ class MessageHandlerImpl(
                 }
             }
 
+            else -> {}
         }
     }
 
@@ -359,7 +367,10 @@ class MessageHandlerImpl(
         val messageId = message.messageId
 
         val saveMessage =
-            Message(messageId, session, user, messageType, true, message.text)
+            Message(
+                messageId, session, user, messageType, true, message.text, message.isReply,
+                if (message.isReply) message.replyToMessage.messageId else null
+            )
         messageRepository.save(saveMessage)
         return messageId
     }
@@ -403,17 +414,24 @@ class CallbackQueryHandlerImpl(
         userRepository.save(updatedUser)
         val chatId = userBotService.getChatId(callbackQuery)
 
-        sender.execute(SendMessage(chatId, "\uD83D\uDE0A Thank you \uD83D\uDE0A"))
+        sender.execute(
+            SendMessage(
+                callbackQuery.message.chatId.toString(), messageSourceService.getMessage(
+                    LocalizationTextKey.THANK_MESSAGE,
+                    languageService.getLanguageOfUser(callbackQuery.from.id)
+                )
+            )
+        )
 
-        val sendMessage = SendMessage(chatId, "Kerakli bo`limni tanlang ❗️")
-        sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(updatedUser)
-        return sendMessage
-        return SendMessage(
-            callbackQuery.message.chatId.toString(), messageSourceService.getMessage(
-                LocalizationTextKey.THANK_MESSAGE,
+        val sendMessage = SendMessage(
+            chatId, messageSourceService.getMessage(
+                LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
                 languageService.getLanguageOfUser(callbackQuery.from.id)
             )
         )
+        sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(updatedUser)
+        return sendMessage
+
     }
 
     fun chooseLanguage(callbackQuery: CallbackQuery): SendMessage {
@@ -439,18 +457,22 @@ class CallbackQueryHandlerImpl(
         if (user.phoneNumber != null) {
             user.botStep = BotStep.SHOW_MENU
             userRepository.save(user)
-            sendMessage = SendMessage(user.telegramId, messageSourceService.getMessage(
-                LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
-                languageService.getLanguageOfUser(callbackQuery.from.id)
-            ))
+            sendMessage = SendMessage(
+                user.telegramId, messageSourceService.getMessage(
+                    LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
+                    languageService.getLanguageOfUser(callbackQuery.from.id)
+                )
+            )
             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
         } else {
             user.botStep = BotStep.SHARE_CONTACT
             userRepository.save(user)
-            sendMessage = SendMessage(callbackQuery.message.chatId.toString(), messageSourceService.getMessage(
-                LocalizationTextKey.SHARE_CONTACT_MESSAGE,
-                languageService.getLanguageOfUser(callbackQuery.from.id)
-            ))
+            sendMessage = SendMessage(
+                callbackQuery.message.chatId.toString(), messageSourceService.getMessage(
+                    LocalizationTextKey.SHARE_CONTACT_MESSAGE,
+                    languageService.getLanguageOfUser(callbackQuery.from.id)
+                )
+            )
             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
         }
         return sendMessage
@@ -573,7 +595,7 @@ class KeyboardReplyMarkupHandler(
 
 
                             if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)){
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
                                     val botMessage =
                                         botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
                                     sendVideo.replyToMessageId = botMessage.telegramMessageId
@@ -592,7 +614,7 @@ class KeyboardReplyMarkupHandler(
                             sendAudio.replyMarkup = generateReplyMarkup(operator)
 
                             if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)){
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
                                     val botMessage =
                                         botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
                                     sendAudio.replyToMessageId = botMessage.telegramMessageId
@@ -612,7 +634,7 @@ class KeyboardReplyMarkupHandler(
                             sendPhoto.replyMarkup = generateReplyMarkup(operator)
 
                             if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)){
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
                                     val botMessage =
                                         botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
                                     sendPhoto.replyToMessageId = botMessage.telegramMessageId
@@ -633,7 +655,7 @@ class KeyboardReplyMarkupHandler(
                                 )
 
                             if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)){
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
                                     val botMessage =
                                         botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
                                     sendDocument.replyToMessageId = botMessage.telegramMessageId
@@ -654,7 +676,7 @@ class KeyboardReplyMarkupHandler(
                                 )
 
                             if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)){
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
                                     val botMessage =
                                         botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
                                     sendAnimation.replyToMessageId = botMessage.telegramMessageId
@@ -675,7 +697,7 @@ class KeyboardReplyMarkupHandler(
                                 )
 
                             if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)){
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
                                     val botMessage =
                                         botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
                                     sendVoice.replyToMessageId = botMessage.telegramMessageId
@@ -696,7 +718,7 @@ class KeyboardReplyMarkupHandler(
                                 )
 
                             if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)){
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
                                     val botMessage =
                                         botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
                                     sendVideoNote.replyToMessageId = botMessage.telegramMessageId
@@ -717,7 +739,7 @@ class KeyboardReplyMarkupHandler(
                                 )
 
                             if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)){
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
                                     val botMessage =
                                         botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
                                     sendSticker.replyToMessageId = botMessage.telegramMessageId
@@ -735,7 +757,7 @@ class KeyboardReplyMarkupHandler(
                             sendMessage.replyMarkup = generateReplyMarkup(operator)
 
                             if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)){
+                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
                                     val botMessage =
                                         botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
                                     sendMessage.replyToMessageId = botMessage.telegramMessageId
