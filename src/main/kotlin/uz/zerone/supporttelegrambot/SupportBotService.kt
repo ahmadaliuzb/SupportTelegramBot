@@ -364,6 +364,7 @@ class MessageHandlerImpl(
 
     fun createMessage(message: Message, session: Session, messageType: MessageType): Int {
         val telegramId = message.from.id
+
         val user = userRepository.findByTelegramId(telegramId.toString())
 
         val messageId = message.messageId
@@ -563,12 +564,12 @@ class EditedMessageHandlerImpl(
 
                 try {
                     val editMessageText = EditMessageText()
-//                        .setChatId(chatId)
-//                        .setMessageId(editingMessage.telegramMessageId)
-//                        .setText("I'm trying!!!")
                     editMessageText.messageId = botMessage.telegramMessageId
                     editMessageText.chatId = chatId
-                    editMessageText.text = editingMessage.text!!
+
+                    editMessageText.text = "${editingMessage.text!!} ♻"
+
+
                     sender.execute(editMessageText)
                 } catch (e: TelegramApiException) {
                     e.printStackTrace()
