@@ -23,7 +23,9 @@ enum class MessageType {
     PHOTO,
     VOICE,
     STICKER,
-    TEXT
+    TEXT,
+    LOCATION
+
 }
 
 enum class BotStep {

@@ -112,3 +112,4 @@ interface BotMessageRepository : BaseRepository<BotMessage> {
     fun findByTelegramMessageId(telegramMessageId: Int):BotMessage
 }
 
+
