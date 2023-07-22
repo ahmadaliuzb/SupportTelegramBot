@@ -4,6 +4,7 @@ import org.springframework.context.support.ResourceBundleMessageSource
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
@@ -47,7 +48,6 @@ class UserServiceImpl(
             ?: throw UserNotFoundException(dto.phoneNumber)
 
         dto.run {
-            val user = userRepository.findByPhoneNumberAndDeletedFalse(phoneNumber)
             user.phoneNumber = phoneNumber
             user.languageList = languages
             user.role = Role.OPERATOR
