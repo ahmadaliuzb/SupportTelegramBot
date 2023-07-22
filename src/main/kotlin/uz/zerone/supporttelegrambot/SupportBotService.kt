@@ -53,12 +53,6 @@ class MessageHandlerImpl(
     private val languageService: LanguageService
 ) : MessageHandler {
     override fun handle(message: Message, sender: AbsSender) {
-
-//        if (message.isDeleted) {
-//            // Xabar o'chirilgan
-//            val deletedMessage = mess
-//            println("O'chirilgan xabar: ${deletedMessage.text}")
-//        }
         val user = userBotService.getOrCreateUser(message)
         when (user.botStep) {
             BotStep.START -> {
@@ -106,6 +100,7 @@ class MessageHandlerImpl(
                         )
                     )
                     sender.execute(sendLanguageSelection(sendMessage))
+                    keyboardReplyMarkupHandler.deleteReplyMarkup(user.telegramId,sender)
                 }
             }
 
@@ -153,7 +148,6 @@ class MessageHandlerImpl(
                         val chatId = userBotService.getChatId(message)
                         val operator = userRepository.findByTelegramIdAndDeletedFalse(chatId)
 
-                        operator.online = false
                         operator.botStep = BotStep.OFFLINE
                         userRepository.save(operator)
 
@@ -629,9 +623,10 @@ class UserBotService(
 
     fun confirmContact(message: Message): SendMessage {
         val user = getOrCreateUser(message)
-        val phoneNumber = message.contact.phoneNumber
+        if(message.contact.userId==message.from.id){
 
-        user.phoneNumber = if (phoneNumber.startsWith("+", true)) phoneNumber else "+$phoneNumber"
+        val phoneNumber = message.contact.phoneNumber
+        user.phoneNumber =  phoneNumber
         user.botStep = BotStep.SHOW_MENU
         userRepository.save(user)
         val sendMessage = SendMessage(
@@ -640,8 +635,19 @@ class UserBotService(
                 languageService.getLanguageOfUser(message.from.id)
             )
         )
-        sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
-        return sendMessage
+            sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+            return sendMessage
+        }
+        else{
+           val sendMessage = SendMessage(
+                user.telegramId, messageSourceService.getMessage(
+                    LocalizationTextKey.SHARE_CONTACT_MESSAGE,
+                    languageService.getLanguageOfUser(user.telegramId.toLong())
+                )
+            )
+           sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+            return sendMessage
+        }
     }
 
 
@@ -1327,6 +1333,9 @@ class FileBotService(
                         telegramId!!,
                         InputFile(File(file.path))
                     )
+
+                    sendPhoto.caption=file.caption
+
                     if (message.isReply) {
                         if (botMessageRepository.existsByReceivedMessageId(
                                 message.replyToMessage.messageId
@@ -1550,7 +1559,7 @@ class FileBotService(
         fileOutputStream.close()
     }
 
-    fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
+    fun getBotToken() = "6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s"
 
     fun createFile(message: Message, name: String, contentType: ContentType): uz.zerone.supporttelegrambot.File {
         val fileMessage = messageRepository.findByTelegramMessageIdAndDeletedFalse(message.messageId)
