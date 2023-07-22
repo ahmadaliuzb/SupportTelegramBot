@@ -623,8 +623,9 @@ class UserBotService(
 
     fun confirmContact(message: Message): SendMessage {
         val user = getOrCreateUser(message)
-        val phoneNumber = message.contact.phoneNumber
+        if(message.contact.userId==message.from.id){
 
+        val phoneNumber = message.contact.phoneNumber
         user.phoneNumber =  phoneNumber
         user.botStep = BotStep.SHOW_MENU
         userRepository.save(user)
@@ -633,6 +634,7 @@ class UserBotService(
                 LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
                 languageService.getLanguageOfUser(message.from.id)
             )
+        )
             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
             return sendMessage
         }
