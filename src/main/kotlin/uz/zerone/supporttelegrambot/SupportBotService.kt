@@ -7,6 +7,7 @@ import org.springframework.web.client.getForObject
 import org.telegram.telegrambots.meta.api.methods.GetFile
 import org.telegram.telegrambots.meta.api.methods.send.*
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Message
@@ -17,11 +18,11 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow
 import org.telegram.telegrambots.meta.bots.AbsSender
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException
 import java.io.File
 import java.io.FileOutputStream
 import java.util.*
 import javax.transaction.Transactional
-import kotlin.collections.ArrayList
 
 
 interface MessageHandler {
@@ -30,6 +31,12 @@ interface MessageHandler {
 
 interface CallbackQueryHandler {
     fun handle(callbackQuery: CallbackQuery, sender: AbsSender)
+
+}
+
+
+interface EditedMessageHandler {
+    fun handle(message: Message, sender: AbsSender)
 }
 
 @Service
@@ -46,6 +53,12 @@ class MessageHandlerImpl(
     private val languageService: LanguageService
 ) : MessageHandler {
     override fun handle(message: Message, sender: AbsSender) {
+
+//        if (message.isDeleted) {
+//            // Xabar o'chirilgan
+//            val deletedMessage = mess
+//            println("O'chirilgan xabar: ${deletedMessage.text}")
+//        }
         val user = userBotService.getOrCreateUser(message)
         when (user.botStep) {
             BotStep.START -> {
@@ -475,6 +488,92 @@ class CallbackQueryHandlerImpl(
 
 @Service
 @Transactional
+class EditedMessageHandlerImpl(
+    private val userRepository: UserRepository,
+    private val messageRepository: MessageRepository,
+    private val sessionRepository: SessionRepository,
+    private val botMessageRepository: BotMessageRepository,
+    private val userBotService: UserBotService
+
+) : EditedMessageHandler {
+    override fun handle(editedMessage: Message, sender: AbsSender) {
+
+        val editedUser = userRepository.findByTelegramId(editedMessage.from.id.toString())
+
+        when (editedUser.botStep) {
+            BotStep.IN_SESSION -> {
+                val editedText: String = editedMessage.text
+
+                // Muharrirlik (edit) qilingan xabarni bazada saqlash, o'zgartirishlarni bajarish yoki qaysi kerak bo'lsa ham
+                // sizning loyihangizga qarab kerakli algoritmlarni qo'shing
+                // Masalan: Bazada xabarni saqlash yoki javob qilib yuborish
+                // ...
+
+                // Muharrirlik qilingan xabarni xabar qilib qayta yuboring
+
+
+                val editingMessage =
+                    messageRepository.findByTelegramMessageIdAndDeletedFalse(editedMessage.messageId)
+                editingMessage.text = editedText
+                editingMessage.edited = true
+                messageRepository.save(editingMessage)
+            }
+
+            BotStep.FULL_SESSION -> {
+
+                val user = userBotService.getOrCreateUser(editedMessage)
+
+
+                val editedText: String = editedMessage.text
+
+                val editingMessage =
+                    messageRepository.findByTelegramMessageIdAndDeletedFalse(editedMessage.messageId)
+                editingMessage.text = editedText
+                editingMessage.edited = true
+                messageRepository.save(editingMessage)
+
+                val chatId: String
+                if (user.role == Role.USER) {
+                    chatId = editingMessage.session.operator!!.telegramId
+                } else {
+                    chatId = editingMessage.session.user.telegramId
+                }
+
+                val botMessage =
+                    botMessageRepository.findByReceivedMessageId(editingMessage.telegramMessageId)
+
+                // Muharrirlik (edit) qilingan xabarni bazada saqlash, o'zgartirishlarni bajarish yoki qaysi kerak bo'lsa ham
+                // sizning loyihangizga qarab kerakli algoritmlarni qo'shing
+                // Masalan: Bazada xabarni saqlash yoki javob qilib yuborish
+                // ...
+
+                // Muharrirlik qilingan xabarni xabar qilib qayta yuboring
+
+                try {
+                    val editMessageText = EditMessageText()
+//                        .setChatId(chatId)
+//                        .setMessageId(editingMessage.telegramMessageId)
+//                        .setText("I'm trying!!!")
+                    editMessageText.messageId = botMessage.telegramMessageId
+                    editMessageText.chatId = chatId
+                    editMessageText.text = editingMessage.text!!
+                    sender.execute(editMessageText)
+                } catch (e: TelegramApiException) {
+                    e.printStackTrace()
+                } catch (e: InterruptedException) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+
+    }
+
+}
+
+
+@Service
+@Transactional
 class UserBotService(
     private val userRepository: UserRepository,
     private val languageRepository: LanguageRepository,
@@ -615,7 +714,13 @@ class KeyboardReplyMarkupHandler(
                                 }
                             }
 
-                            val sendMessageByBot = sender.execute(sendVideo)
+                            var sendMessageByBot: Message
+                            try {
+                                sendMessageByBot = sender.execute(sendVideo)
+                            } catch (e: Exception) {
+                                sendVideo.replyToMessageId = null
+                                sendMessageByBot = sender.execute(sendVideo)
+                            }
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
                         }
@@ -636,7 +741,13 @@ class KeyboardReplyMarkupHandler(
                                 }
                             }
 
-                            val sendMessageByBot = sender.execute(sendAudio)
+                            var sendMessageByBot: Message
+                            try {
+                                sendMessageByBot = sender.execute(sendAudio)
+                            } catch (e: Exception) {
+                                sendAudio.replyToMessageId = null
+                                sendMessageByBot = sender.execute(sendAudio)
+                            }
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
 
@@ -647,7 +758,13 @@ class KeyboardReplyMarkupHandler(
                             val sendPhoto =
                                 SendPhoto(chatId, InputFile(File(file.path)))
                             sendPhoto.replyMarkup = generateReplyMarkup(operator)
-                            val sendMessageByBot = sender.execute(sendPhoto)
+                            var sendMessageByBot: Message
+                            try {
+                                sendMessageByBot = sender.execute(sendPhoto)
+                            } catch (e: Exception) {
+                                sendPhoto.replyToMessageId = null
+                                sendMessageByBot = sender.execute(sendPhoto)
+                            }
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
                         }
@@ -665,11 +782,19 @@ class KeyboardReplyMarkupHandler(
                                 if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
                                     val botMessage =
                                         botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+
                                     sendDocument.replyToMessageId = botMessage.telegramMessageId
+
+
                                 }
                             }
-
-                            val sendMessageByBot = sender.execute(sendDocument)
+                            var sendMessageByBot: Message
+                            try {
+                                sendMessageByBot = sender.execute(sendDocument)
+                            } catch (e: Exception) {
+                                sendDocument.replyToMessageId = null
+                                sendMessageByBot = sender.execute(sendDocument)
+                            }
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
                         }
@@ -691,7 +816,13 @@ class KeyboardReplyMarkupHandler(
                                 }
                             }
 
-                            val sendMessageByBot = sender.execute(sendAnimation)
+                            var sendMessageByBot: Message
+                            try {
+                                sendMessageByBot = sender.execute(sendAnimation)
+                            } catch (e: Exception) {
+                                sendAnimation.replyToMessageId = null
+                                sendMessageByBot = sender.execute(sendAnimation)
+                            }
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
                         }
@@ -713,7 +844,13 @@ class KeyboardReplyMarkupHandler(
                                 }
                             }
 
-                            val sendMessageByBot = sender.execute(sendVoice)
+                            var sendMessageByBot: Message
+                            try {
+                                sendMessageByBot = sender.execute(sendVoice)
+                            } catch (e: Exception) {
+                                sendVoice.replyToMessageId = null
+                                sendMessageByBot = sender.execute(sendVoice)
+                            }
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
                         }
@@ -735,7 +872,13 @@ class KeyboardReplyMarkupHandler(
                                 }
                             }
 
-                            val sendMessageByBot = sender.execute(sendVideoNote)
+                            var sendMessageByBot: Message
+                            try {
+                                sendMessageByBot = sender.execute(sendVideoNote)
+                            } catch (e: Exception) {
+                                sendVideoNote.replyToMessageId = null
+                                sendMessageByBot = sender.execute(sendVideoNote)
+                            }
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
                         }
@@ -756,7 +899,13 @@ class KeyboardReplyMarkupHandler(
                                 }
                             }
 
-                            val sendMessageByBot = sender.execute(sendSticker)
+                            var sendMessageByBot: Message
+                            try {
+                                sendMessageByBot = sender.execute(sendSticker)
+                            } catch (e: Exception) {
+                                sendSticker.replyToMessageId = null
+                                sendMessageByBot = sender.execute(sendSticker)
+                            }
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
                         }
@@ -774,7 +923,13 @@ class KeyboardReplyMarkupHandler(
                                 }
                             }
 
-                            val sendMessageByBot = sender.execute(sendMessage)
+                            var sendMessageByBot: Message
+                            try {
+                                sendMessageByBot = sender.execute(sendMessage)
+                            } catch (e: Exception) {
+                                sendMessage.replyToMessageId = null
+                                sendMessageByBot = sender.execute(sendMessage)
+                            }
                             val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                             botMessageRepository.save(botMessage)
                         }
@@ -1007,7 +1162,13 @@ class FileBotService(
                         }
                     }
 
-                    val sendMessageByBot = sender.execute(sendDocument)
+                    var sendMessageByBot: Message
+                    try {
+                        sendMessageByBot = sender.execute(sendDocument)
+                    } catch (e: Exception) {
+                        sendDocument.replyToMessageId = null
+                        sendMessageByBot = sender.execute(sendDocument)
+                    }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
                 }
@@ -1047,7 +1208,13 @@ class FileBotService(
                         }
                     }
 
-                    val sendMessageByBot = sender.execute(sendVideo)
+                    var sendMessageByBot: Message
+                    try {
+                        sendMessageByBot = sender.execute(sendVideo)
+                    } catch (e: Exception) {
+                        sendVideo.replyToMessageId = null
+                        sendMessageByBot = sender.execute(sendVideo)
+                    }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
                 }
@@ -1086,7 +1253,13 @@ class FileBotService(
                         }
                     }
 
-                    val sendMessageByBot = sender.execute(sendAudio)
+                    var sendMessageByBot: Message
+                    try {
+                        sendMessageByBot = sender.execute(sendAudio)
+                    } catch (e: Exception) {
+                        sendAudio.replyToMessageId = null
+                        sendMessageByBot = sender.execute(sendAudio)
+                    }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
                 }
@@ -1124,7 +1297,13 @@ class FileBotService(
                         }
                     }
 
-                    val sendMessageByBot = sender.execute(sendVideoNote)
+                    var sendMessageByBot: Message
+                    try {
+                        sendMessageByBot = sender.execute(sendVideoNote)
+                    } catch (e: Exception) {
+                        sendVideoNote.replyToMessageId = null
+                        sendMessageByBot = sender.execute(sendVideoNote)
+                    }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
                 }
@@ -1163,7 +1342,13 @@ class FileBotService(
                         }
                     }
 
-                    val sendMessageByBot = sender.execute(sendPhoto)
+                    var sendMessageByBot: Message
+                    try {
+                        sendMessageByBot = sender.execute(sendPhoto)
+                    } catch (e: Exception) {
+                        sendPhoto.replyToMessageId = null
+                        sendMessageByBot = sender.execute(sendPhoto)
+                    }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
                 }
@@ -1204,7 +1389,13 @@ class FileBotService(
                         }
                     }
 
-                    val sendMessageByBot = sender.execute(sendAnimation)
+                    var sendMessageByBot: Message
+                    try {
+                        sendMessageByBot = sender.execute(sendAnimation)
+                    } catch (e: Exception) {
+                        sendAnimation.replyToMessageId = null
+                        sendMessageByBot = sender.execute(sendAnimation)
+                    }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
                 }
@@ -1246,7 +1437,13 @@ class FileBotService(
                         }
                     }
 
-                    val sendMessageByBot = sender.execute(sendVoice)
+                    var sendMessageByBot: Message
+                    try {
+                        sendMessageByBot = sender.execute(sendVoice)
+                    } catch (e: Exception) {
+                        sendVoice.replyToMessageId = null
+                        sendMessageByBot = sender.execute(sendVoice)
+                    }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
                 }
@@ -1260,7 +1457,7 @@ class FileBotService(
 
             val fileExtension = when {
                 sticker.isAnimated -> ".tgs"
-                sticker.isVideo->".webm"
+                sticker.isVideo -> ".webm"
                 else -> ".webp"
             }
 
@@ -1294,7 +1491,13 @@ class FileBotService(
                         }
                     }
 
-                    val sendMessageByBot = sender.execute(sendSticker)
+                    var sendMessageByBot: Message
+                    try {
+                        sendMessageByBot = sender.execute(sendSticker)
+                    } catch (e: Exception) {
+                        sendSticker.replyToMessageId = null
+                        sendMessageByBot = sender.execute(sendSticker)
+                    }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
                 }
@@ -1322,7 +1525,13 @@ class FileBotService(
                     }
                 }
 
-                val sendMessageByBot = sender.execute(sendMessage)
+                var sendMessageByBot: Message
+                try {
+                    sendMessageByBot = sender.execute(sendMessage)
+                } catch (e: Exception) {
+                    sendMessage.replyToMessageId = null
+                    sendMessageByBot = sender.execute(sendMessage)
+                }
                 val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                 botMessageRepository.save(botMessage)
             }

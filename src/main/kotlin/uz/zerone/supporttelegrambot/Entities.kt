@@ -61,10 +61,10 @@ class Message(
     @ManyToOne var session: Session,
     @ManyToOne val sender: User,
     var messageType: MessageType,
-    var active: Boolean,
-    val text: String?,
-    val isReply : Boolean,
-    val replyMessageId:Int?,
+    var edited: Boolean=false,
+    var text: String?,
+    val isReply: Boolean,
+    val replyMessageId: Int?,
 ) : BaseEntity()
 
 @Entity
@@ -73,7 +73,7 @@ class File(
     var path: String,
     var contentType: ContentType,
     @ManyToOne val message: Message,
-    val caption:String?
+    val caption: String?
 ) : BaseEntity()
 
 //
