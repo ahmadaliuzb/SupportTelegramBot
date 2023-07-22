@@ -2,7 +2,6 @@ package uz.zerone.supporttelegrambot
 
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.Update
 
 @Service
@@ -13,17 +12,16 @@ class SupportTelegramBot(
 
     ) : TelegramLongPollingBot() {
 
-    override fun getBotUsername(): String = "zeroone4bot"
+    override fun getBotUsername(): String = "https://t.me/firstkotlinbot"
 
-    override fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
+    override fun getBotToken() = "6300162247:AAEV4HccaFlyrsE-OmOaIuxijkV98saBnko"
 
     override fun onUpdateReceived(update: Update) {
         when {
-            update.hasCallbackQuery() -> callbackQueryHandler.handle(update.callbackQuery, this)
+            update.hasCallbackQuery() -> callbackQueryHandler.handle(update.callbackQuery,this)
             update.hasMessage() -> messageHandler.handle(update.message, this)
             update.hasEditedMessage() -> editedMessageHandler.handle(update.editedMessage, this)
         }
-
     }
 
 }

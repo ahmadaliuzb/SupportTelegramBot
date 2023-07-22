@@ -1,6 +1,6 @@
 package uz.zerone.supporttelegrambot
 
-import java.math.BigDecimal
+import org.springframework.data.domain.Pageable
 
 
 /**
@@ -15,22 +15,25 @@ data class UsersList(
     val username: String?,
     val phoneNumber: String?,
     val role: Role,
-    val languageList:MutableList<Language>?
+    val languageList: MutableList<Language>?,
 ) {
     companion object {
         fun toDto(user: User): UsersList {
             return user.run {
-                UsersList(telegramId,username,phoneNumber,role,languageList)
+                UsersList(telegramId, username, phoneNumber, role, languageList)
             }
         }
     }
 }
 
- data class UserUpdateDto(
-     val phoneNumber: String,
-     val languageList:MutableList<String>
+data class UserUpdateDto(
+    val phoneNumber: String,
+    val languageList: MutableList<String>,
 )
 
-data class LanguageDto(
-     val languageDto: String
-)
+data class TotalOperatorRate(
+    val operatorId: Long,
+    val rate: Int,
+){
+
+}

@@ -28,7 +28,7 @@ enum class MessageType {
 
 }
 
-enum class BotStep {
+enum class BotStep{
     START,
     CHOOSE_LANGUAGE,
     SHARE_CONTACT,
@@ -51,8 +51,8 @@ enum class ContentType {
     STICKER
 }
 
-enum class ErrorCode(val code: Int) {
-    USER_NOT_FOUND(101),
+enum class ErrorCode(val code: Int){
+    USER_NOT_FOUND(100)
 }
 
 enum class LocalizationTextKey() {
@@ -76,5 +76,6 @@ enum class LocalizationTextKey() {
     CHOOSE_RATE_MESSAGE,
     OFFLINE_MESSAGE,
     THANK_MESSAGE,
-    WAIT_FOR_OPERATOR_MESSAGE
+    WAIT_FOR_OPERATOR_MESSAGE,
+    SORRY_MESSAGE,
 }

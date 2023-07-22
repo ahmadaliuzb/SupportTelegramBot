@@ -5,9 +5,6 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
-import java.io.File
 
 /**
 17/07/2023 - 1:36 PM
@@ -28,7 +25,8 @@ class UserServiceImpl(
     private val telegramBot: SupportTelegramBot,
     private val messageSourceService: MessageSourceService,
     private val languageService: LanguageService,
-    private val sessionRepository: SessionRepository
+    private val sessionRepository: SessionRepository,
+    private val messageHandler: MessageHandlerImpl
 ) : UserService {
     override fun getAll(pageable: Pageable): Page<UsersList> {
         return userRepository.findAllNotDeleted(pageable).map { UsersList.toDto(it) }
@@ -62,6 +60,38 @@ class UserServiceImpl(
         sessions.forEach { it.active = false }
         sessionRepository.saveAll(sessions)
 
+        val sessionList =
+            sessionRepository.findAllByOperatorTelegramIdAndActiveTrue(user.telegramId)
+        sessionList.forEach {
+            it.active = false
+            val sessionUser = it.user
+            val sendUserMessage = SendMessage(
+                sessionUser.telegramId,
+                messageSourceService.getMessage(
+                    LocalizationTextKey.SORRY_MESSAGE,
+                    languageService.getLanguageOfUser(sessionUser.telegramId.toLong())
+                )
+            )
+            telegramBot.execute(sendUserMessage)
+            sessionUser.botStep=BotStep.ASSESSMENT
+            userRepository.save(sessionUser)
+
+            telegramBot.execute(
+               messageHandler.sendRateSelection(
+                    SendMessage(
+                        sessionUser.telegramId,
+                        messageSourceService.getMessage(
+                            LocalizationTextKey.CHOOSE_RATE_MESSAGE,
+                            languageService.getLanguageOfUser(sessionUser.telegramId.toLong())
+                        )
+                    ),
+                    it.id
+                )
+            )
+        }
+
+        sessionRepository.saveAll(sessionList)
+
         val sendMessage = SendMessage(
             user.telegramId, messageSourceService.getMessage(
                 LocalizationTextKey.ASSIGN_OPERATOR_MESSAGE,
@@ -70,8 +100,6 @@ class UserServiceImpl(
         )
         sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
         telegramBot.execute(sendMessage)
-
-
     }
 
 }
