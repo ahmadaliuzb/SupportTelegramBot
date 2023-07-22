@@ -13,9 +13,9 @@ class SupportTelegramBot(
 
     ) : TelegramLongPollingBot() {
 
-    override fun getBotUsername(): String = "zeroone4bot"
+    override fun getBotUsername(): String = "https://t.me/firstkotlinbot"
 
-    override fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
+    override fun getBotToken() = "6300162247:AAEV4HccaFlyrsE-OmOaIuxijkV98saBnko"
 
     override fun onUpdateReceived(update: Update) {
         when {

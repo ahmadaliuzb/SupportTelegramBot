@@ -285,7 +285,7 @@ class MessageHandlerImpl(
     }
 
 
-    fun start(message: Message, sender: AbsSender): SendMessage {
+    fun start(message: Message): SendMessage {
         val chatId = userBotService.getChatId(message)
         val sendMessage = SendMessage(
             chatId, "🤖 Qaysi tilda javob berasiz?" +

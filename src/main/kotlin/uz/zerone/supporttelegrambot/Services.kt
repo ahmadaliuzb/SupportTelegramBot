@@ -5,8 +5,6 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton
 
 /**
 17/07/2023 - 1:36 PM
@@ -67,7 +65,7 @@ class UserServiceImpl(
         sessionList.forEach {
             it.active = false
             val sessionUser = it.user
-            var sendUserMessage = SendMessage(
+            val sendUserMessage = SendMessage(
                 sessionUser.telegramId,
                 messageSourceService.getMessage(
                     LocalizationTextKey.SORRY_MESSAGE,
