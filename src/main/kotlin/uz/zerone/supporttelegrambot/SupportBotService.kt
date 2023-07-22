@@ -7,6 +7,7 @@ import org.springframework.web.client.getForObject
 import org.telegram.telegrambots.meta.api.methods.GetFile
 import org.telegram.telegrambots.meta.api.methods.send.*
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText
 import org.telegram.telegrambots.meta.api.objects.CallbackQuery
 import org.telegram.telegrambots.meta.api.objects.InputFile
 import org.telegram.telegrambots.meta.api.objects.Message
@@ -529,19 +530,30 @@ class UserBotService(
 
     fun confirmContact(message: Message): SendMessage {
         val user = getOrCreateUser(message)
-        val phoneNumber = message.contact.phoneNumber
-
-        user.phoneNumber = if(phoneNumber.startsWith("+",true))phoneNumber else "+$phoneNumber"
-        user.botStep = BotStep.SHOW_MENU
-        userRepository.save(user)
-        val sendMessage = SendMessage(
-            user.telegramId, messageSourceService.getMessage(
-                LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
-                languageService.getLanguageOfUser(message.from.id)
+        if(message.contact.userId==message.from.id){
+            val phoneNumber = message.contact.phoneNumber
+            user.phoneNumber = phoneNumber
+            user.botStep = BotStep.SHOW_MENU
+            userRepository.save(user)
+            val sendMessage = SendMessage(
+                user.telegramId, messageSourceService.getMessage(
+                    LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
+                    languageService.getLanguageOfUser(message.from.id)
+                )
             )
-        )
-        sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
-        return sendMessage
+            sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+            return sendMessage
+        }
+        else{
+           val sendMessage = SendMessage(
+                user.telegramId, messageSourceService.getMessage(
+                    LocalizationTextKey.SHARE_CONTACT_MESSAGE,
+                    languageService.getLanguageOfUser(user.telegramId.toLong())
+                )
+            )
+           sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+            return sendMessage
+        }
     }
 
 
@@ -1343,7 +1355,7 @@ class FileBotService(
         fileOutputStream.close()
     }
 
-    fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
+    fun getBotToken() = "6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s"
 
     fun createFile(message: Message, name: String, contentType: ContentType): uz.zerone.supporttelegrambot.File {
         val fileMessage = messageRepository.findByTelegramMessageIdAndDeletedFalse(message.messageId)

@@ -9,7 +9,6 @@ spring:
     username: postgres
     password: root123
 
-
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:

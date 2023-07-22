@@ -12,16 +12,15 @@ class SupportTelegramBot(
 
 ) : TelegramLongPollingBot() {
 
-    override fun getBotUsername(): String = "zeroone4bot"
+    override fun getBotUsername(): String = "session_support_bot"
 
-    override fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
+    override fun getBotToken() = "6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s"
 
     override fun onUpdateReceived(update: Update) {
         when {
             update.hasCallbackQuery() -> callbackQueryHandler.handle(update.callbackQuery, this)
             update.hasMessage() -> messageHandler.handle(update.message, this)
         }
-
     }
 
 }
