@@ -11,6 +11,7 @@ sealed class DemoException(message: String? = null) : RuntimeException(message) 
         return BaseMessage(
             errorType().code,
             errorMessageSource.getMessage(
+
                 errorType().toString(),
                 array,
                 Locale(LocaleContextHolder.getLocale().language)

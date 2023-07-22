@@ -81,6 +81,8 @@ interface SessionRepository : BaseRepository<Session> {
 
     fun findByOperatorTelegramIdAndActiveTrue(operator_telegramId: String): Session
 
+    fun findAllByOperatorTelegramIdAndActiveTrue(operator_telegramId: String):MutableList<Session>
+
     fun findByActiveTrueAndOperatorIsNullOrderByCreatedDateAsc(): MutableList<Session>
 
     fun findAllByUserTelegramIdAndActiveTrue(user_telegramId: String):MutableList<Session>
@@ -109,4 +111,5 @@ interface BotMessageRepository : BaseRepository<BotMessage> {
 
     fun findByTelegramMessageId(telegramMessageId: Int):BotMessage
 }
+
 
