@@ -23,14 +23,14 @@ class WebMvcConfigure : WebMvcConfigurer {
 
 
 @Component
-class Components() {
+class Components {
     @Bean
     fun messageResourceBundleMessageSource(): ResourceBundleMessageSource? {
         val messageSource = ResourceBundleMessageSource()
         messageSource.setBasename("messages")
         messageSource.setCacheSeconds(3600)
         messageSource.setDefaultLocale(Locale.US)
-        messageSource.setDefaultEncoding("UTF-8")
+        messageSource.setDefaultEncoding(Charsets.UTF_8.name())
         return messageSource
     }
 

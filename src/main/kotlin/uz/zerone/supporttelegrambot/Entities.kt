@@ -19,7 +19,8 @@ import javax.persistence.*
 class BaseEntity(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) var id: Long? = null,
     @Column(nullable = false) @ColumnDefault(value = "false") var deleted: Boolean = false,
-)
+) {
+}
 
 @Entity
 class Language(

@@ -5,9 +5,10 @@ spring:
     active: local
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/support_bot
+    url: jdbc:postgresql://localhost:5432/learning
     username: postgres
-    password: ahmadali1976
+    password: 1234
+
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect

@@ -50,7 +50,7 @@ class MessageHandlerImpl(
     private val fileBotService: FileBotService,
     private val sessionRepository: SessionRepository,
     private val messageSourceService: MessageSourceService,
-    private val languageService: LanguageService
+    private val languageService: LanguageService,
 ) : MessageHandler {
     override fun handle(message: Message, sender: AbsSender) {
         val user = userBotService.getOrCreateUser(message)
@@ -100,7 +100,7 @@ class MessageHandlerImpl(
                         )
                     )
                     sender.execute(sendLanguageSelection(sendMessage))
-                    keyboardReplyMarkupHandler.deleteReplyMarkup(user.telegramId,sender)
+                    keyboardReplyMarkupHandler.deleteReplyMarkup(user.telegramId, sender)
                 }
             }
 
@@ -179,7 +179,8 @@ class MessageHandlerImpl(
                         messageSourceService.getMessage(
                             LocalizationTextKey.OPERATOR_CLOSE_BUTTON,
                             languageService.getLanguageOfUser(message.from.id)
-                        ) -> {
+                        ),
+                        -> {
 
                             val chatId = userBotService.getChatId(message)
                             val operator = userRepository.findByTelegramIdAndDeletedFalse(chatId)
@@ -230,7 +231,8 @@ class MessageHandlerImpl(
                         messageSourceService.getMessage(
                             LocalizationTextKey.OPERATOR_CLOSE_AND_OFFLINE_BUTTON,
                             languageService.getLanguageOfUser(message.from.id)
-                        ) -> {
+                        ),
+                        -> {
                             val operator = userRepository.findByTelegramIdAndDeletedFalse(user.telegramId)
                             operator.botStep = BotStep.OFFLINE
                             userRepository.save(operator)
@@ -340,17 +342,17 @@ class MessageHandlerImpl(
         val inlineKeyboardMarkup = InlineKeyboardMarkup()
         val inlineKeyboardButtonsRow = ArrayList<InlineKeyboardButton>()
 
-        // Create buttons
-        val buttons = listOf(
-            InlineKeyboardButton.builder().text("Uzbek\uD83C\uDDFA\uD83C\uDDFF").callbackData("uzbek").build(),
-            InlineKeyboardButton.builder().text("Russian\uD83C\uDDF7\uD83C\uDDFA").callbackData("russian").build(),
-            InlineKeyboardButton.builder().text("English\uD83C\uDDEC\uD83C\uDDE7").callbackData("english").build()
-        )
 
-        // Shuffle the buttons to generate a random order
-        buttons.shuffled().forEach {
-            inlineKeyboardButtonsRow.add(it)
-        }
+        val button = InlineKeyboardButton.builder().text("Uzbek\uD83C\uDDFA\uD83C\uDDFF").callbackData("uzbek").build()
+        val button1 =
+            InlineKeyboardButton.builder().text("Russian\uD83C\uDDF7\uD83C\uDDFA").callbackData("russian").build()
+        val button2 =
+            InlineKeyboardButton.builder().text("English\uD83C\uDDEC\uD83C\uDDE7").callbackData("english").build()
+
+
+        inlineKeyboardButtonsRow.add(button)
+        inlineKeyboardButtonsRow.add(button1)
+        inlineKeyboardButtonsRow.add(button2)
 
         val inlineKeyboardButtons = ArrayList<List<InlineKeyboardButton>>()
         inlineKeyboardButtons.add(inlineKeyboardButtonsRow)
@@ -394,8 +396,9 @@ class CallbackQueryHandlerImpl(
         val user = userBotService.getOrCreateUser(callbackQuery)
         when (user.botStep) {
             BotStep.CHOOSE_LANGUAGE -> {
-                sender.execute(chooseLanguage(callbackQuery))
+                sender.execute(chooseLanguage(callbackQuery, sender))
             }
+
 
             BotStep.ASSESSMENT -> sender.execute(chooseRate(callbackQuery, sender))
             else -> {}
@@ -430,11 +433,16 @@ class CallbackQueryHandlerImpl(
             )
         )
         sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(updatedUser)
+        keyboardReplyMarkupHandler.deleteInlineReplyMarkup(
+            callbackQuery.message.chatId,
+            callbackQuery.message.messageId,
+            sender
+        )
         return sendMessage
 
     }
 
-    fun chooseLanguage(callbackQuery: CallbackQuery): SendMessage {
+    fun chooseLanguage(callbackQuery: CallbackQuery, sender: AbsSender): SendMessage {
         val data = callbackQuery.data
         val user = userBotService.getOrCreateUser(callbackQuery)
         val languageList = mutableListOf<Language>()
@@ -464,6 +472,11 @@ class CallbackQueryHandlerImpl(
                 )
             )
             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+            keyboardReplyMarkupHandler.deleteInlineReplyMarkup(
+                callbackQuery.message.chatId,
+                callbackQuery.message.messageId,
+                sender
+            )
         } else {
             user.botStep = BotStep.SHARE_CONTACT
             userRepository.save(user)
@@ -474,6 +487,11 @@ class CallbackQueryHandlerImpl(
                 )
             )
             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+            keyboardReplyMarkupHandler.deleteInlineReplyMarkup(
+                callbackQuery.message.chatId,
+                callbackQuery.message.messageId,
+                sender
+            )
         }
         return sendMessage
 
@@ -575,7 +593,7 @@ class UserBotService(
     private val keyboardReplyMarkupHandler: KeyboardReplyMarkupHandler,
 
     private val languageService: LanguageService,
-    private val messageSourceService: MessageSourceService
+    private val messageSourceService: MessageSourceService,
 ) {
 
     fun getOrCreateUser(message: Message): User {
@@ -674,6 +692,16 @@ class KeyboardReplyMarkupHandler(
         sendMessage.replyMarkup = ReplyKeyboardRemove(true)
         val message = sender.execute(sendMessage)
         sender.execute(DeleteMessage(chatId, message.messageId))
+    }
+
+    fun deleteInlineReplyMarkup(
+        chatId: Long, messageId: Int, sender: AbsSender,
+    ) {
+        val deleteMessage = DeleteMessage()
+        deleteMessage.chatId = chatId.toString()
+        deleteMessage.messageId = messageId
+        sender.execute(deleteMessage)
+
     }
 
     fun findWaitingUsers(message: Message, sender: AbsSender, sessionsList: MutableList<Session>) {
@@ -1000,12 +1028,12 @@ class KeyboardReplyMarkupHandler(
             rowList.add(keyboardRow)
         } else if (user.botStep == BotStep.SHOW_MENU && user.role == Role.USER) {
             row1Button1.text = messageSourceService.getMessage(
-                LocalizationTextKey.SETTINGS_BUTTON,
+                LocalizationTextKey.QUESTION_BUTTON,
                 languageService.getLanguageOfUser(user.telegramId.toLong())
             )
             val row1Button2 = KeyboardButton()
             row1Button2.text = messageSourceService.getMessage(
-                LocalizationTextKey.QUESTION_BUTTON,
+                LocalizationTextKey.SETTINGS_BUTTON,
                 languageService.getLanguageOfUser(user.telegramId.toLong())
             )
             row1.add(row1Button1)
@@ -1032,7 +1060,7 @@ class SessionBotService(
     private val fileBotService: FileBotService,
     private val keyboardReplyMarkupHandler: KeyboardReplyMarkupHandler,
     private val messageSourceService: MessageSourceService,
-    private val languageService: LanguageService
+    private val languageService: LanguageService,
 ) {
 
 
@@ -1288,6 +1316,7 @@ class FileBotService(
                         telegramId!!,
                         InputFile(File(file.path))
                     )
+
                     if (message.isReply) {
                         if (botMessageRepository.existsByReceivedMessageId(
                                 message.replyToMessage.messageId
@@ -1334,7 +1363,7 @@ class FileBotService(
                         InputFile(File(file.path))
                     )
 
-                    sendPhoto.caption=file.caption
+                    sendPhoto.caption = file.caption
 
                     if (message.isReply) {
                         if (botMessageRepository.existsByReceivedMessageId(
@@ -1559,7 +1588,7 @@ class FileBotService(
         fileOutputStream.close()
     }
 
-    fun getBotToken() = "6005965806:AAGx17eBrfH2z2DvIeYu2WZPe6d_BUfnJ4s"
+    fun getBotToken() = "6300162247:AAEV4HccaFlyrsE-OmOaIuxijkV98saBnko"
 
     fun createFile(message: Message, name: String, contentType: ContentType): uz.zerone.supporttelegrambot.File {
         val fileMessage = messageRepository.findByTelegramMessageIdAndDeletedFalse(message.messageId)

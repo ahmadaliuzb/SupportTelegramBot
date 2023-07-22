@@ -10,15 +10,16 @@ import org.springframework.web.bind.annotation.*
 @ControllerAdvice
 class ExceptionHandlers(
     private val errorMessageSource: ResourceBundleMessageSource
-) {
+){
     @ExceptionHandler(DemoException::class)
-    fun handleException(exception: DemoException): ResponseEntity<*> {
-        return when (exception) {
+    fun handleException(exception: DemoException): ResponseEntity<*>{
+        return when(exception){
             is UserNotFoundException -> ResponseEntity.badRequest()
                 .body(exception.getErrorMessage(errorMessageSource, exception.phoneNumber))
         }
     }
 }
+
 
 
 @RestController
