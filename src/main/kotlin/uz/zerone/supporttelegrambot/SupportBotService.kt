@@ -70,12 +70,14 @@ class MessageHandlerImpl(
             }
 
             BotStep.SHOW_MENU -> {
+                user.isBlocked = false
                 val sendMessage: SendMessage
                 if (message.text == messageSourceService.getMessage(
                         LocalizationTextKey.QUESTION_BUTTON,
                         languageService.getLanguageOfUser(message.from.id)
                     )
                 ) {
+
                     user.botStep = BotStep.ONLINE
                     userRepository.save(user)
                     sendMessage = SendMessage(
@@ -101,6 +103,15 @@ class MessageHandlerImpl(
                     )
                     sender.execute(sendLanguageSelection(sendMessage))
                     keyboardReplyMarkupHandler.deleteReplyMarkup(user.telegramId, sender)
+                } else {
+                    sendMessage = SendMessage(
+                        user.telegramId, messageSourceService.getMessage(
+                            LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
+                            languageService.getLanguageOfUser(message.from.id)
+                        )
+                    )
+                    sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+                    sender.execute(sendMessage)
                 }
             }
 
@@ -191,23 +202,27 @@ class MessageHandlerImpl(
 
                             val session = sessionBotService.findSessionByUserOrOperator(operator.telegramId, null)
                             //Akh
+
+
                             val savedUser = session.user
-                            savedUser.botStep = BotStep.ASSESSMENT
-                            userRepository.save(savedUser)
 
-                            sender.execute(
-                                sendRateSelection(
-                                    SendMessage(
-                                        savedUser.telegramId,
-                                        messageSourceService.getMessage(
-                                            LocalizationTextKey.CHOOSE_RATE_MESSAGE,
-                                            languageService.getLanguageOfUser(savedUser.telegramId.toLong())
-                                        )
-                                    ),
-                                    session.id
+                            if (!savedUser.isBlocked) {
+                                savedUser.botStep = BotStep.ASSESSMENT
+                                userRepository.save(savedUser)
+
+                                sender.execute(
+                                    sendRateSelection(
+                                        SendMessage(
+                                            savedUser.telegramId,
+                                            messageSourceService.getMessage(
+                                                LocalizationTextKey.CHOOSE_RATE_MESSAGE,
+                                                languageService.getLanguageOfUser(savedUser.telegramId.toLong())
+                                            )
+                                        ),
+                                        session.id
+                                    )
                                 )
-                            )
-
+                            }
                             //Akh
                             session.active = false
                             sessionBotService.save(session)
@@ -564,7 +579,7 @@ class EditedMessageHandlerImpl(
 
                 try {
                     val editMessageText = EditMessageText()
-                    editMessageText.messageId = botMessage.telegramMessageId
+                    editMessageText.messageId = botMessage?.telegramMessageId
                     editMessageText.chatId = chatId
 
                     editMessageText.text = "${editingMessage.text!!} ♻"
@@ -642,29 +657,28 @@ class UserBotService(
 
     fun confirmContact(message: Message): SendMessage {
         val user = getOrCreateUser(message)
-        if(message.contact.userId==message.from.id){
+        if (message.contact.userId == message.from.id) {
 
-        val phoneNumber = message.contact.phoneNumber
-        user.phoneNumber =  phoneNumber
-        user.botStep = BotStep.SHOW_MENU
-        userRepository.save(user)
-        val sendMessage = SendMessage(
-            user.telegramId, messageSourceService.getMessage(
-                LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
-                languageService.getLanguageOfUser(message.from.id)
+            val phoneNumber = message.contact.phoneNumber
+            user.phoneNumber = phoneNumber
+            user.botStep = BotStep.SHOW_MENU
+            userRepository.save(user)
+            val sendMessage = SendMessage(
+                user.telegramId, messageSourceService.getMessage(
+                    LocalizationTextKey.CHOOSE_SECTION_MESSAGE,
+                    languageService.getLanguageOfUser(message.from.id)
+                )
             )
-        )
             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
             return sendMessage
-        }
-        else{
-           val sendMessage = SendMessage(
+        } else {
+            val sendMessage = SendMessage(
                 user.telegramId, messageSourceService.getMessage(
                     LocalizationTextKey.SHARE_CONTACT_MESSAGE,
                     languageService.getLanguageOfUser(user.telegramId.toLong())
                 )
             )
-           sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+            sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
             return sendMessage
         }
     }
@@ -710,272 +724,287 @@ class KeyboardReplyMarkupHandler(
         val operator = userRepository.findByTelegramIdAndDeletedFalse(chatId)
 
         val session = sessionsList[0]
+        val user = session.user
         for (lang in operator.languageList!!) {
-            if (lang.languageEnum == session.user.languageList!![0].languageEnum) {
-                val operatorSendMessage = SendMessage(
-                    chatId, messageSourceService.getMessage(
-                        LocalizationTextKey.CONNECT_USER_MESSAGE,
-                        languageService.getLanguageOfUser(operator.telegramId.toLong())
-                    ) + " - ${session.user.firstName}"
-                )
-                sender.execute(operatorSendMessage)
+            if (lang.languageEnum == user.languageList!![0].languageEnum) {
 
-                val userSendMessage = SendMessage(
-                    session.user.telegramId, messageSourceService.getMessage(
-                        LocalizationTextKey.CONNECT_OPERATOR_MESSAGE,
-                        languageService.getLanguageOfUser(session.user.telegramId.toLong())
+                try {
+                    val userSendMessage = SendMessage(
+                        user.telegramId, messageSourceService.getMessage(
+                            LocalizationTextKey.CONNECT_OPERATOR_MESSAGE,
+                            languageService.getLanguageOfUser(user.telegramId.toLong())
+                        )
                     )
-                )
-                sender.execute(userSendMessage)
-
-                val messages = messageRepository.findBySessionIdAndSessionUserId(session.id!!, session.user.id!!)
-                for (s_message in messages) {
-                    operator.botStep = BotStep.FULL_SESSION
-                    userRepository.save(operator)
-
-                    when (s_message.messageType) {
-                        MessageType.VIDEO -> {
-                            val file = fileRepository.findByMessageId(s_message.id!!)
-                            val sendVideo =
-                                SendVideo(chatId, InputFile(File(file.path)))
-                            sendVideo.replyMarkup = generateReplyMarkup(operator)
-                            sendVideo.caption = file.caption
-
-                            if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
-                                    val botMessage =
-                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
-                                    sendVideo.replyToMessageId = botMessage.telegramMessageId
-                                }
-                            }
-
-                            var sendMessageByBot: Message
-                            try {
-                                sendMessageByBot = sender.execute(sendVideo)
-                            } catch (e: Exception) {
-                                sendVideo.replyToMessageId = null
-                                sendMessageByBot = sender.execute(sendVideo)
-                            }
-                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
-                            botMessageRepository.save(botMessage)
-                        }
-
-                        MessageType.AUDIO -> {
-                            val file = fileRepository.findByMessageId(s_message.id!!)
-                            val sendAudio =
-                                SendAudio(chatId, InputFile(File(file.path)))
-                            sendAudio.replyMarkup = generateReplyMarkup(operator)
-                            sendAudio.caption = file.caption
-
-
-                            if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
-                                    val botMessage =
-                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
-                                    sendAudio.replyToMessageId = botMessage.telegramMessageId
-                                }
-                            }
-
-                            var sendMessageByBot: Message
-                            try {
-                                sendMessageByBot = sender.execute(sendAudio)
-                            } catch (e: Exception) {
-                                sendAudio.replyToMessageId = null
-                                sendMessageByBot = sender.execute(sendAudio)
-                            }
-                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
-                            botMessageRepository.save(botMessage)
-
-                        }
-
-                        MessageType.PHOTO -> {
-                            val file = fileRepository.findByMessageId(s_message.id!!)
-                            val sendPhoto =
-                                SendPhoto(chatId, InputFile(File(file.path)))
-                            sendPhoto.replyMarkup = generateReplyMarkup(operator)
-                            var sendMessageByBot: Message
-                            try {
-                                sendMessageByBot = sender.execute(sendPhoto)
-                            } catch (e: Exception) {
-                                sendPhoto.replyToMessageId = null
-                                sendMessageByBot = sender.execute(sendPhoto)
-                            }
-                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
-                            botMessageRepository.save(botMessage)
-                        }
-
-                        MessageType.DOCUMENT -> {
-                            val file = fileRepository.findByMessageId(s_message.id!!)
-                            val sendDocument =
-                                SendDocument(
-                                    chatId,
-                                    InputFile(File(file.path))
-                                )
-                            sendDocument.caption = file.caption
-
-                            if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
-                                    val botMessage =
-                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
-
-                                    sendDocument.replyToMessageId = botMessage.telegramMessageId
-
-
-                                }
-                            }
-                            var sendMessageByBot: Message
-                            try {
-                                sendMessageByBot = sender.execute(sendDocument)
-                            } catch (e: Exception) {
-                                sendDocument.replyToMessageId = null
-                                sendMessageByBot = sender.execute(sendDocument)
-                            }
-                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
-                            botMessageRepository.save(botMessage)
-                        }
-
-                        MessageType.ANIMATION -> {
-                            val file = fileRepository.findByMessageId(s_message.id!!)
-                            val sendAnimation =
-                                SendAnimation(
-                                    chatId,
-                                    InputFile(File(file.path))
-                                )
-                            sendAnimation.caption = file.caption
-
-                            if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
-                                    val botMessage =
-                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
-                                    sendAnimation.replyToMessageId = botMessage.telegramMessageId
-                                }
-                            }
-
-                            var sendMessageByBot: Message
-                            try {
-                                sendMessageByBot = sender.execute(sendAnimation)
-                            } catch (e: Exception) {
-                                sendAnimation.replyToMessageId = null
-                                sendMessageByBot = sender.execute(sendAnimation)
-                            }
-                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
-                            botMessageRepository.save(botMessage)
-                        }
-
-                        MessageType.VOICE -> {
-                            val file = fileRepository.findByMessageId(s_message.id!!)
-                            val sendVoice =
-                                SendVoice(
-                                    chatId,
-                                    InputFile(File(file.path))
-                                )
-                            sendVoice.caption = file.caption
-
-                            if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
-                                    val botMessage =
-                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
-                                    sendVoice.replyToMessageId = botMessage.telegramMessageId
-                                }
-                            }
-
-                            var sendMessageByBot: Message
-                            try {
-                                sendMessageByBot = sender.execute(sendVoice)
-                            } catch (e: Exception) {
-                                sendVoice.replyToMessageId = null
-                                sendMessageByBot = sender.execute(sendVoice)
-                            }
-                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
-                            botMessageRepository.save(botMessage)
-                        }
-
-                        MessageType.VIDEO_NOTE -> {
-                            val file = fileRepository.findByMessageId(s_message.id!!)
-                            val sendVideoNote =
-                                SendVideoNote(
-                                    chatId,
-                                    InputFile(File(file.path))
-                                )
-
-
-                            if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
-                                    val botMessage =
-                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
-                                    sendVideoNote.replyToMessageId = botMessage.telegramMessageId
-                                }
-                            }
-
-                            var sendMessageByBot: Message
-                            try {
-                                sendMessageByBot = sender.execute(sendVideoNote)
-                            } catch (e: Exception) {
-                                sendVideoNote.replyToMessageId = null
-                                sendMessageByBot = sender.execute(sendVideoNote)
-                            }
-                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
-                            botMessageRepository.save(botMessage)
-                        }
-
-                        MessageType.STICKER -> {
-                            val file = fileRepository.findByMessageId(s_message.id!!)
-                            val sendSticker =
-                                SendSticker(
-                                    chatId,
-                                    InputFile(File(file.path))
-                                )
-
-                            if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
-                                    val botMessage =
-                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
-                                    sendSticker.replyToMessageId = botMessage.telegramMessageId
-                                }
-                            }
-
-                            var sendMessageByBot: Message
-                            try {
-                                sendMessageByBot = sender.execute(sendSticker)
-                            } catch (e: Exception) {
-                                sendSticker.replyToMessageId = null
-                                sendMessageByBot = sender.execute(sendSticker)
-                            }
-                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
-                            botMessageRepository.save(botMessage)
-                        }
-
-
-                        MessageType.TEXT -> {
-                            val sendMessage = SendMessage(chatId, s_message.text!!)
-                            sendMessage.replyMarkup = generateReplyMarkup(operator)
-
-                            if (s_message.isReply) {
-                                if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
-                                    val botMessage =
-                                        botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
-                                    sendMessage.replyToMessageId = botMessage.telegramMessageId
-                                }
-                            }
-
-                            var sendMessageByBot: Message
-                            try {
-                                sendMessageByBot = sender.execute(sendMessage)
-                            } catch (e: Exception) {
-                                sendMessage.replyToMessageId = null
-                                sendMessageByBot = sender.execute(sendMessage)
-                            }
-                            val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
-                            botMessageRepository.save(botMessage)
-                        }
-                    }
-                    session.user.botStep = BotStep.FULL_SESSION
-                    userRepository.save(session.user)
-
-                    session.operator = operator
+                    sender.execute(userSendMessage)
+                }
+                catch (e:Exception){
+                    user.isBlocked = true
+                    user.botStep = BotStep.SHOW_MENU
+                    userRepository.save(user)
+                    session.active=false
                     sessionRepository.save(session)
                 }
-                break
+                if(!user.isBlocked){
+
+                    val operatorSendMessage = SendMessage(
+                        chatId, messageSourceService.getMessage(
+                            LocalizationTextKey.CONNECT_USER_MESSAGE,
+                            languageService.getLanguageOfUser(operator.telegramId.toLong())
+                        ) + " - ${user.firstName}"
+                    )
+                    sender.execute(operatorSendMessage)
+
+                    val messages = messageRepository.findBySessionIdAndSessionUserId(session.id!!, user.id!!)
+
+                    for (s_message in messages) {
+                        operator.botStep = BotStep.FULL_SESSION
+                        userRepository.save(operator)
+
+                        when (s_message.messageType) {
+                            MessageType.VIDEO -> {
+                                val file = fileRepository.findByMessageId(s_message.id!!)
+                                val sendVideo =
+                                    SendVideo(chatId, InputFile(File(file.path)))
+                                sendVideo.replyMarkup = generateReplyMarkup(operator)
+                                sendVideo.caption = file.caption
+
+                                if (s_message.isReply) {
+                                    if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                        val botMessage =
+                                            botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                        sendVideo.replyToMessageId = botMessage?.telegramMessageId
+                                    }
+                                }
+
+                                var sendMessageByBot: Message
+                                try {
+                                    sendMessageByBot = sender.execute(sendVideo)
+                                } catch (e: Exception) {
+                                    sendVideo.replyToMessageId = null
+                                    sendMessageByBot = sender.execute(sendVideo)
+                                }
+                                val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                                botMessageRepository.save(botMessage)
+                            }
+
+                            MessageType.AUDIO -> {
+                                val file = fileRepository.findByMessageId(s_message.id!!)
+                                val sendAudio =
+                                    SendAudio(chatId, InputFile(File(file.path)))
+                                sendAudio.replyMarkup = generateReplyMarkup(operator)
+                                sendAudio.caption = file.caption
+
+
+                                if (s_message.isReply) {
+                                    if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                        val botMessage =
+                                            botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                        sendAudio.replyToMessageId = botMessage?.telegramMessageId
+                                    }
+                                }
+
+                                var sendMessageByBot: Message
+                                try {
+                                    sendMessageByBot = sender.execute(sendAudio)
+                                } catch (e: Exception) {
+                                    sendAudio.replyToMessageId = null
+                                    sendMessageByBot = sender.execute(sendAudio)
+                                }
+                                val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                                botMessageRepository.save(botMessage)
+
+                            }
+
+                            MessageType.PHOTO -> {
+                                val file = fileRepository.findByMessageId(s_message.id!!)
+                                val sendPhoto =
+                                    SendPhoto(chatId, InputFile(File(file.path)))
+                                sendPhoto.replyMarkup = generateReplyMarkup(operator)
+                                var sendMessageByBot: Message
+                                try {
+                                    sendMessageByBot = sender.execute(sendPhoto)
+                                } catch (e: Exception) {
+                                    sendPhoto.replyToMessageId = null
+                                    sendMessageByBot = sender.execute(sendPhoto)
+                                }
+                                val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                                botMessageRepository.save(botMessage)
+                            }
+
+                            MessageType.DOCUMENT -> {
+                                val file = fileRepository.findByMessageId(s_message.id!!)
+                                val sendDocument =
+                                    SendDocument(
+                                        chatId,
+                                        InputFile(File(file.path))
+                                    )
+                                sendDocument.caption = file.caption
+
+                                if (s_message.isReply) {
+                                    if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                        val botMessage =
+                                            botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+
+                                        sendDocument.replyToMessageId = botMessage?.telegramMessageId
+
+
+                                    }
+                                }
+                                var sendMessageByBot: Message
+                                try {
+                                    sendMessageByBot = sender.execute(sendDocument)
+                                } catch (e: Exception) {
+                                    sendDocument.replyToMessageId = null
+                                    sendMessageByBot = sender.execute(sendDocument)
+                                }
+                                val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                                botMessageRepository.save(botMessage)
+                            }
+
+                            MessageType.ANIMATION -> {
+                                val file = fileRepository.findByMessageId(s_message.id!!)
+                                val sendAnimation =
+                                    SendAnimation(
+                                        chatId,
+                                        InputFile(File(file.path))
+                                    )
+                                sendAnimation.caption = file.caption
+
+                                if (s_message.isReply) {
+                                    if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                        val botMessage =
+                                            botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                        sendAnimation.replyToMessageId = botMessage?.telegramMessageId
+                                    }
+                                }
+
+                                var sendMessageByBot: Message
+                                try {
+                                    sendMessageByBot = sender.execute(sendAnimation)
+                                } catch (e: Exception) {
+                                    sendAnimation.replyToMessageId = null
+                                    sendMessageByBot = sender.execute(sendAnimation)
+                                }
+                                val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                                botMessageRepository.save(botMessage)
+                            }
+
+                            MessageType.VOICE -> {
+                                val file = fileRepository.findByMessageId(s_message.id!!)
+                                val sendVoice =
+                                    SendVoice(
+                                        chatId,
+                                        InputFile(File(file.path))
+                                    )
+                                sendVoice.caption = file.caption
+
+                                if (s_message.isReply) {
+                                    if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                        val botMessage =
+                                            botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                        sendVoice.replyToMessageId = botMessage?.telegramMessageId
+                                    }
+                                }
+
+                                var sendMessageByBot: Message
+                                try {
+                                    sendMessageByBot = sender.execute(sendVoice)
+                                } catch (e: Exception) {
+                                    sendVoice.replyToMessageId = null
+                                    sendMessageByBot = sender.execute(sendVoice)
+                                }
+                                val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                                botMessageRepository.save(botMessage)
+                            }
+
+                            MessageType.VIDEO_NOTE -> {
+                                val file = fileRepository.findByMessageId(s_message.id!!)
+                                val sendVideoNote =
+                                    SendVideoNote(
+                                        chatId,
+                                        InputFile(File(file.path))
+                                    )
+
+
+                                if (s_message.isReply) {
+                                    if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                        val botMessage =
+                                            botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                        sendVideoNote.replyToMessageId = botMessage?.telegramMessageId
+                                    }
+                                }
+
+                                var sendMessageByBot: Message
+                                try {
+                                    sendMessageByBot = sender.execute(sendVideoNote)
+                                } catch (e: Exception) {
+                                    sendVideoNote.replyToMessageId = null
+                                    sendMessageByBot = sender.execute(sendVideoNote)
+                                }
+                                val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                                botMessageRepository.save(botMessage)
+                            }
+
+                            MessageType.STICKER -> {
+                                val file = fileRepository.findByMessageId(s_message.id!!)
+                                val sendSticker =
+                                    SendSticker(
+                                        chatId,
+                                        InputFile(File(file.path))
+                                    )
+
+                                if (s_message.isReply) {
+                                    if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                        val botMessage =
+                                            botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                        sendSticker.replyToMessageId = botMessage?.telegramMessageId
+                                    }
+                                }
+
+                                var sendMessageByBot: Message
+                                try {
+                                    sendMessageByBot = sender.execute(sendSticker)
+                                } catch (e: Exception) {
+                                    sendSticker.replyToMessageId = null
+                                    sendMessageByBot = sender.execute(sendSticker)
+                                }
+                                val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                                botMessageRepository.save(botMessage)
+                            }
+
+
+                            MessageType.TEXT -> {
+                                val sendMessage = SendMessage(chatId, s_message.text!!)
+                                sendMessage.replyMarkup = generateReplyMarkup(operator)
+
+                                if (s_message.isReply) {
+                                    if (botMessageRepository.existsByReceivedMessageId(s_message.replyMessageId!!)) {
+                                        val botMessage =
+                                            botMessageRepository.findByReceivedMessageId(s_message.replyMessageId!!)
+                                        sendMessage.replyToMessageId = botMessage?.telegramMessageId
+                                    }
+                                }
+
+                                var sendMessageByBot: Message
+                                try {
+                                    sendMessageByBot = sender.execute(sendMessage)
+                                } catch (e: Exception) {
+                                    sendMessage.replyToMessageId = null
+                                    sendMessageByBot = sender.execute(sendMessage)
+                                }
+                                val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
+                                botMessageRepository.save(botMessage)
+                            }
+                        }
+                        user.botStep = BotStep.FULL_SESSION
+                        userRepository.save(user)
+
+                        session.operator = operator
+                        sessionRepository.save(session)
+                    }
+                    break
+
+                }
             }
         }
 
@@ -1151,6 +1180,9 @@ class FileBotService(
     private val messageRepository: MessageRepository,
     private val fileRepository: FileRepository,
     private val botMessageRepository: BotMessageRepository,
+    private val messageSourceService: MessageSourceService,
+    private val languageService: LanguageService,
+    private val userRepository: UserRepository
 ) {
     fun saveMessageAndFile(
         message: Message,
@@ -1189,11 +1221,11 @@ class FileBotService(
                         ) {
                             val botMessage =
                                 botMessageRepository.findByReceivedMessageId(message.replyToMessage.messageId)
-                            sendDocument.replyToMessageId = botMessage.telegramMessageId
+                            sendDocument.replyToMessageId = botMessage?.telegramMessageId
                         } else {
                             val botMessage =
                                 botMessageRepository.findByTelegramMessageId(message.replyToMessage.messageId)
-                            sendDocument.replyToMessageId = botMessage.receivedMessageId
+                            sendDocument.replyToMessageId = botMessage?.receivedMessageId
                         }
                     }
 
@@ -1201,8 +1233,26 @@ class FileBotService(
                     try {
                         sendMessageByBot = sender.execute(sendDocument)
                     } catch (e: Exception) {
-                        sendDocument.replyToMessageId = null
-                        sendMessageByBot = sender.execute(sendDocument)
+                        try {
+                            sendDocument.replyToMessageId = null
+                            sendMessageByBot = sender.execute(sendDocument)
+                        } catch (e: Exception) {
+                            sendMessageByBot = sender.execute(
+                                SendMessage(
+                                    session.operator!!.telegramId,
+                                    messageSourceService.getMessage(
+                                        LocalizationTextKey.BLOCK_USER_MESSAGE,
+                                        languageService.getLanguageOfUser(session.operator!!.telegramId.toLong())
+                                    )
+                                )
+                            )
+
+                            val user = session.user
+                            user.isBlocked = true
+                            user.botStep = BotStep.SHOW_MENU
+                            userRepository.save(user)
+
+                        }
                     }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
@@ -1235,11 +1285,11 @@ class FileBotService(
                         ) {
                             val botMessage =
                                 botMessageRepository.findByReceivedMessageId(message.replyToMessage.messageId)
-                            sendVideo.replyToMessageId = botMessage.telegramMessageId
+                            sendVideo.replyToMessageId = botMessage?.telegramMessageId
                         } else {
                             val botMessage =
                                 botMessageRepository.findByTelegramMessageId(message.replyToMessage.messageId)
-                            sendVideo.replyToMessageId = botMessage.receivedMessageId
+                            sendVideo.replyToMessageId = botMessage?.receivedMessageId
                         }
                     }
 
@@ -1247,8 +1297,26 @@ class FileBotService(
                     try {
                         sendMessageByBot = sender.execute(sendVideo)
                     } catch (e: Exception) {
-                        sendVideo.replyToMessageId = null
-                        sendMessageByBot = sender.execute(sendVideo)
+                        try {
+                            sendVideo.replyToMessageId = null
+                            sendMessageByBot = sender.execute(sendVideo)
+                        } catch (e: Exception) {
+                            sendMessageByBot = sender.execute(
+                                SendMessage(
+                                    session.operator!!.telegramId,
+                                    messageSourceService.getMessage(
+                                        LocalizationTextKey.BLOCK_USER_MESSAGE,
+                                        languageService.getLanguageOfUser(session.operator!!.telegramId.toLong())
+                                    )
+                                )
+                            )
+
+                            val user = session.user
+                            user.isBlocked = true
+                            user.botStep = BotStep.SHOW_MENU
+                            userRepository.save(user)
+
+                        }
                     }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
@@ -1280,11 +1348,11 @@ class FileBotService(
                         ) {
                             val botMessage =
                                 botMessageRepository.findByReceivedMessageId(message.replyToMessage.messageId)
-                            sendAudio.replyToMessageId = botMessage.telegramMessageId
+                            sendAudio.replyToMessageId = botMessage?.telegramMessageId
                         } else {
                             val botMessage =
                                 botMessageRepository.findByTelegramMessageId(message.replyToMessage.messageId)
-                            sendAudio.replyToMessageId = botMessage.receivedMessageId
+                            sendAudio.replyToMessageId = botMessage?.receivedMessageId
                         }
                     }
 
@@ -1292,8 +1360,26 @@ class FileBotService(
                     try {
                         sendMessageByBot = sender.execute(sendAudio)
                     } catch (e: Exception) {
-                        sendAudio.replyToMessageId = null
-                        sendMessageByBot = sender.execute(sendAudio)
+                        try {
+                            sendAudio.replyToMessageId = null
+                            sendMessageByBot = sender.execute(sendAudio)
+                        } catch (e: Exception) {
+                            sendMessageByBot = sender.execute(
+                                SendMessage(
+                                    session.operator!!.telegramId,
+                                    messageSourceService.getMessage(
+                                        LocalizationTextKey.BLOCK_USER_MESSAGE,
+                                        languageService.getLanguageOfUser(session.operator!!.telegramId.toLong())
+                                    )
+                                )
+                            )
+
+                            val user = session.user
+                            user.isBlocked = true
+                            user.botStep = BotStep.SHOW_MENU
+                            userRepository.save(user)
+
+                        }
                     }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
@@ -1325,11 +1411,11 @@ class FileBotService(
                         ) {
                             val botMessage =
                                 botMessageRepository.findByReceivedMessageId(message.replyToMessage.messageId)
-                            sendVideoNote.replyToMessageId = botMessage.telegramMessageId
+                            sendVideoNote.replyToMessageId = botMessage?.telegramMessageId
                         } else {
                             val botMessage =
                                 botMessageRepository.findByTelegramMessageId(message.replyToMessage.messageId)
-                            sendVideoNote.replyToMessageId = botMessage.receivedMessageId
+                            sendVideoNote.replyToMessageId = botMessage?.receivedMessageId
                         }
                     }
 
@@ -1337,8 +1423,26 @@ class FileBotService(
                     try {
                         sendMessageByBot = sender.execute(sendVideoNote)
                     } catch (e: Exception) {
-                        sendVideoNote.replyToMessageId = null
-                        sendMessageByBot = sender.execute(sendVideoNote)
+                        try {
+                            sendVideoNote.replyToMessageId = null
+                            sendMessageByBot = sender.execute(sendVideoNote)
+                        } catch (e: Exception) {
+                            sendMessageByBot = sender.execute(
+                                SendMessage(
+                                    session.operator!!.telegramId,
+                                    messageSourceService.getMessage(
+                                        LocalizationTextKey.BLOCK_USER_MESSAGE,
+                                        languageService.getLanguageOfUser(session.operator!!.telegramId.toLong())
+                                    )
+                                )
+                            )
+
+                            val user = session.user
+                            user.isBlocked = true
+                            user.botStep = BotStep.SHOW_MENU
+                            userRepository.save(user)
+
+                        }
                     }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
@@ -1373,11 +1477,11 @@ class FileBotService(
                         ) {
                             val botMessage =
                                 botMessageRepository.findByReceivedMessageId(message.replyToMessage.messageId)
-                            sendPhoto.replyToMessageId = botMessage.telegramMessageId
+                            sendPhoto.replyToMessageId = botMessage?.telegramMessageId
                         } else {
                             val botMessage =
                                 botMessageRepository.findByTelegramMessageId(message.replyToMessage.messageId)
-                            sendPhoto.replyToMessageId = botMessage.receivedMessageId
+                            sendPhoto.replyToMessageId = botMessage?.receivedMessageId
                         }
                     }
 
@@ -1385,8 +1489,26 @@ class FileBotService(
                     try {
                         sendMessageByBot = sender.execute(sendPhoto)
                     } catch (e: Exception) {
-                        sendPhoto.replyToMessageId = null
-                        sendMessageByBot = sender.execute(sendPhoto)
+                        try {
+                            sendPhoto.replyToMessageId = null
+                            sendMessageByBot = sender.execute(sendPhoto)
+                        } catch (e: Exception) {
+                            sendMessageByBot = sender.execute(
+                                SendMessage(
+                                    session.operator!!.telegramId,
+                                    messageSourceService.getMessage(
+                                        LocalizationTextKey.BLOCK_USER_MESSAGE,
+                                        languageService.getLanguageOfUser(session.operator!!.telegramId.toLong())
+                                    )
+                                )
+                            )
+
+                            val user = session.user
+                            user.isBlocked = true
+                            user.botStep = BotStep.SHOW_MENU
+                            userRepository.save(user)
+
+                        }
                     }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
@@ -1420,11 +1542,11 @@ class FileBotService(
                         ) {
                             val botMessage =
                                 botMessageRepository.findByReceivedMessageId(message.replyToMessage.messageId)
-                            sendAnimation.replyToMessageId = botMessage.telegramMessageId
+                            sendAnimation.replyToMessageId = botMessage?.telegramMessageId
                         } else {
                             val botMessage =
                                 botMessageRepository.findByTelegramMessageId(message.replyToMessage.messageId)
-                            sendAnimation.replyToMessageId = botMessage.receivedMessageId
+                            sendAnimation.replyToMessageId = botMessage?.receivedMessageId
                         }
                     }
 
@@ -1432,8 +1554,26 @@ class FileBotService(
                     try {
                         sendMessageByBot = sender.execute(sendAnimation)
                     } catch (e: Exception) {
-                        sendAnimation.replyToMessageId = null
-                        sendMessageByBot = sender.execute(sendAnimation)
+                        try {
+                            sendAnimation.replyToMessageId = null
+                            sendMessageByBot = sender.execute(sendAnimation)
+                        } catch (e: Exception) {
+                            sendMessageByBot = sender.execute(
+                                SendMessage(
+                                    session.operator!!.telegramId,
+                                    messageSourceService.getMessage(
+                                        LocalizationTextKey.BLOCK_USER_MESSAGE,
+                                        languageService.getLanguageOfUser(session.operator!!.telegramId.toLong())
+                                    )
+                                )
+                            )
+
+                            val user = session.user
+                            user.isBlocked = true
+                            user.botStep = BotStep.SHOW_MENU
+                            userRepository.save(user)
+
+                        }
                     }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
@@ -1468,11 +1608,11 @@ class FileBotService(
                         ) {
                             val botMessage =
                                 botMessageRepository.findByReceivedMessageId(message.replyToMessage.messageId)
-                            sendVoice.replyToMessageId = botMessage.telegramMessageId
+                            sendVoice.replyToMessageId = botMessage?.telegramMessageId
                         } else {
                             val botMessage =
                                 botMessageRepository.findByTelegramMessageId(message.replyToMessage.messageId)
-                            sendVoice.replyToMessageId = botMessage.receivedMessageId
+                            sendVoice.replyToMessageId = botMessage?.receivedMessageId
                         }
                     }
 
@@ -1480,8 +1620,26 @@ class FileBotService(
                     try {
                         sendMessageByBot = sender.execute(sendVoice)
                     } catch (e: Exception) {
-                        sendVoice.replyToMessageId = null
-                        sendMessageByBot = sender.execute(sendVoice)
+                        try {
+                            sendVoice.replyToMessageId = null
+                            sendMessageByBot = sender.execute(sendVoice)
+                        } catch (e: Exception) {
+                            sendMessageByBot = sender.execute(
+                                SendMessage(
+                                    session.operator!!.telegramId,
+                                    messageSourceService.getMessage(
+                                        LocalizationTextKey.BLOCK_USER_MESSAGE,
+                                        languageService.getLanguageOfUser(session.operator!!.telegramId.toLong())
+                                    )
+                                )
+                            )
+
+                            val user = session.user
+                            user.isBlocked = true
+                            user.botStep = BotStep.SHOW_MENU
+                            userRepository.save(user)
+
+                        }
                     }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
@@ -1522,11 +1680,11 @@ class FileBotService(
                         ) {
                             val botMessage =
                                 botMessageRepository.findByReceivedMessageId(message.replyToMessage.messageId)
-                            sendSticker.replyToMessageId = botMessage.telegramMessageId
+                            sendSticker.replyToMessageId = botMessage?.telegramMessageId
                         } else {
                             val botMessage =
                                 botMessageRepository.findByTelegramMessageId(message.replyToMessage.messageId)
-                            sendSticker.replyToMessageId = botMessage.receivedMessageId
+                            sendSticker.replyToMessageId = botMessage?.receivedMessageId
                         }
                     }
 
@@ -1534,8 +1692,26 @@ class FileBotService(
                     try {
                         sendMessageByBot = sender.execute(sendSticker)
                     } catch (e: Exception) {
-                        sendSticker.replyToMessageId = null
-                        sendMessageByBot = sender.execute(sendSticker)
+                        try {
+                            sendSticker.replyToMessageId = null
+                            sendMessageByBot = sender.execute(sendSticker)
+                        } catch (e: Exception) {
+                            sendMessageByBot = sender.execute(
+                                SendMessage(
+                                    session.operator!!.telegramId,
+                                    messageSourceService.getMessage(
+                                        LocalizationTextKey.BLOCK_USER_MESSAGE,
+                                        languageService.getLanguageOfUser(session.operator!!.telegramId.toLong())
+                                    )
+                                )
+                            )
+
+                            val user = session.user
+                            user.isBlocked = true
+                            user.botStep = BotStep.SHOW_MENU
+                            userRepository.save(user)
+
+                        }
                     }
                     val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                     botMessageRepository.save(botMessage)
@@ -1556,11 +1732,11 @@ class FileBotService(
                     ) {
                         val botMessage =
                             botMessageRepository.findByReceivedMessageId(message.replyToMessage.messageId)
-                        sendMessage.replyToMessageId = botMessage.telegramMessageId
+                        sendMessage.replyToMessageId = botMessage?.telegramMessageId
                     } else {
                         val botMessage =
                             botMessageRepository.findByTelegramMessageId(message.replyToMessage.messageId)
-                        sendMessage.replyToMessageId = botMessage.receivedMessageId
+                        sendMessage.replyToMessageId = botMessage?.receivedMessageId
                     }
                 }
 
@@ -1568,8 +1744,26 @@ class FileBotService(
                 try {
                     sendMessageByBot = sender.execute(sendMessage)
                 } catch (e: Exception) {
-                    sendMessage.replyToMessageId = null
-                    sendMessageByBot = sender.execute(sendMessage)
+                    try {
+                        sendMessage.replyToMessageId = null
+                        sendMessageByBot = sender.execute(sendMessage)
+                    } catch (e: Exception) {
+                        sendMessageByBot = sender.execute(
+                            SendMessage(
+                                session.operator!!.telegramId,
+                                messageSourceService.getMessage(
+                                    LocalizationTextKey.BLOCK_USER_MESSAGE,
+                                    languageService.getLanguageOfUser(session.operator!!.telegramId.toLong())
+                                )
+                            )
+                        )
+
+                        val user = session.user
+                        user.isBlocked = true
+                        user.botStep = BotStep.SHOW_MENU
+                        userRepository.save(user)
+
+                    }
                 }
                 val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                 botMessageRepository.save(botMessage)
@@ -1589,7 +1783,7 @@ class FileBotService(
         fileOutputStream.close()
     }
 
-    fun getBotToken() = "6300162247:AAEV4HccaFlyrsE-OmOaIuxijkV98saBnko"
+    fun getBotToken() = "6044983688:AAFbj2YiwmJcT8l6IaaSVKEbEH9YKFuqrAo"
 
     fun createFile(message: Message, name: String, contentType: ContentType): uz.zerone.supporttelegrambot.File {
         val fileMessage = messageRepository.findByTelegramMessageIdAndDeletedFalse(message.messageId)

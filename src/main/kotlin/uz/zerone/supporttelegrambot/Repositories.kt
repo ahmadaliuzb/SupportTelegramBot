@@ -107,9 +107,9 @@ interface LanguageRepository : BaseRepository<Language> {
 interface BotMessageRepository : BaseRepository<BotMessage> {
     fun existsByReceivedMessageId(receivedMessageId: Int):Boolean
 
-    fun findByReceivedMessageId(receivedMessageId: Int):BotMessage
+    fun findByReceivedMessageId(receivedMessageId: Int):BotMessage?
 
-    fun findByTelegramMessageId(telegramMessageId: Int):BotMessage
+    fun findByTelegramMessageId(telegramMessageId: Int):BotMessage?
 }
 
 

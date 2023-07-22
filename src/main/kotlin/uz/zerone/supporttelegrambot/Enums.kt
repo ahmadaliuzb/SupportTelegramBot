@@ -78,4 +78,5 @@ enum class LocalizationTextKey() {
     THANK_MESSAGE,
     WAIT_FOR_OPERATOR_MESSAGE,
     SORRY_MESSAGE,
+    BLOCK_USER_MESSAGE
 }

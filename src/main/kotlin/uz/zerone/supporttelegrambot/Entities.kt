@@ -44,7 +44,7 @@ class User(
     var online: Boolean,
     @ManyToMany(fetch = FetchType.EAGER)
     var languageList: MutableList<Language>?,
-    var totalRate: Int = 0
+    var isBlocked: Boolean = false
 ) : BaseEntity()
 
 @Entity
@@ -62,7 +62,7 @@ class Message(
     @ManyToOne var session: Session,
     @ManyToOne val sender: User,
     var messageType: MessageType,
-    var edited: Boolean=false,
+    var edited: Boolean = false,
     var text: String?,
     val isReply: Boolean,
     val replyMessageId: Int?,
