@@ -9,8 +9,9 @@ import org.telegram.telegrambots.meta.api.objects.Update
 class SupportTelegramBot(
     private val messageHandler: MessageHandler,
     private val callbackQueryHandler: CallbackQueryHandler,
+    private val editedMessageHandler: EditedMessageHandler,
 
-) : TelegramLongPollingBot() {
+    ) : TelegramLongPollingBot() {
 
     override fun getBotUsername(): String = "zeroone4bot"
 
@@ -20,6 +21,7 @@ class SupportTelegramBot(
         when {
             update.hasCallbackQuery() -> callbackQueryHandler.handle(update.callbackQuery, this)
             update.hasMessage() -> messageHandler.handle(update.message, this)
+            update.hasEditedMessage() -> editedMessageHandler.handle(update.editedMessage, this)
         }
 
     }
