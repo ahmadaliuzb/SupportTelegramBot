@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
+import java.util.*
 
 /**
 17/07/2023 - 1:36 PM
@@ -36,9 +37,9 @@ class UserServiceImpl(
         val languages = mutableListOf<Language>()
         for (languageDto in dto.languageList) {
             when (languageDto) {
-                "UZ" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.UZ))
+                "ENG" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.UZ))
                 "RU" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.RU))
-                "ENG" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.ENG))
+                "UZ" -> languages.add(languageRepository.findByLanguageEnumAndDeletedFalse(LanguageEnum.ENG))
             }
         }
 
@@ -73,11 +74,11 @@ class UserServiceImpl(
                 )
             )
             telegramBot.execute(sendUserMessage)
-            sessionUser.botStep=BotStep.ASSESSMENT
+            sessionUser.botStep = BotStep.ASSESSMENT
             userRepository.save(sessionUser)
 
             telegramBot.execute(
-               messageHandler.sendRateSelection(
+                messageHandler.sendRateSelection(
                     SendMessage(
                         sessionUser.telegramId,
                         messageSourceService.getMessage(
@@ -122,6 +123,11 @@ class LanguageService(
 ) {
     fun getLanguageOfUser(id: Long): Language {
         val user = userRepository.findByTelegramIdAndDeletedFalse(id.toString())
+        val languageList = user.languageList
+
+        languageList?.sort()
+
+
         return user.languageList?.get(0) ?: Language(LanguageEnum.UZ)
     }
 }

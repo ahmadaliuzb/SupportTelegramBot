@@ -26,7 +26,17 @@ class BaseEntity(
 class Language(
     @Enumerated(EnumType.STRING)
     val languageEnum: LanguageEnum
-) : BaseEntity()
+) : BaseEntity(), Comparable<Language> {
+    override fun compareTo(other: Language): Int {
+        if (this.languageEnum == LanguageEnum.UZ && other.languageEnum == LanguageEnum.ENG) return 1
+        if (this.languageEnum == LanguageEnum.UZ && other.languageEnum == LanguageEnum.RU) return 1
+        if (this.languageEnum == LanguageEnum.RU && other.languageEnum == LanguageEnum.ENG) return 1
+        if (this.languageEnum == LanguageEnum.RU && other.languageEnum == LanguageEnum.UZ) return -1
+        if (this.languageEnum == LanguageEnum.ENG && other.languageEnum == LanguageEnum.UZ) return -1
+        if (this.languageEnum == LanguageEnum.ENG && other.languageEnum == LanguageEnum.RU) return -1
+        return 0
+    }
+}
 
 @Entity(name = "users")
 class User(
