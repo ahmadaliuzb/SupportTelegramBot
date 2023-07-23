@@ -170,6 +170,22 @@ class MessageHandlerImpl(
                         sessionsList
                     )
                 }
+
+
+                //->Bu operatorning BotStep.OFFLINE  holatida chat tarixini tozalasa kelib chiqadiga muammoni
+                //hal qilish uchun yozildi
+                else {
+                    val sendMessage = SendMessage(
+                        user.telegramId, messageSourceService.getMessage(
+                            LocalizationTextKey.ERROR_MESSAGE,
+                            languageService.getLanguageOfUser(user.telegramId.toLong())
+                        )
+                    )
+                    sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+                    sender.execute(sendMessage)
+                }
+                //<-
+
             }
 
             BotStep.ONLINE -> {
@@ -189,6 +205,14 @@ class MessageHandlerImpl(
                         val sendMessage = SendMessage(
                             chatId, messageSourceService.getMessage(
                                 LocalizationTextKey.OFFLINE_MESSAGE, languageService.getLanguageOfUser(message.from.id)
+                            )
+                        )
+                        sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
+                        sender.execute(sendMessage)
+                    } else {
+                        val sendMessage = SendMessage(
+                            user.telegramId, messageSourceService.getMessage(
+                                LocalizationTextKey.ERROR_MESSAGE, languageService.getLanguageOfUser(message.from.id)
                             )
                         )
                         sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
@@ -309,6 +333,8 @@ class MessageHandlerImpl(
                             sendMessage.replyMarkup = keyboardReplyMarkupHandler.generateReplyMarkup(user)
                             sender.execute(sendMessage)
                         }
+
+
 
                         else -> {
                             val session = sessionBotService.findSessionByUserOrOperator(user.telegramId, null)
@@ -1155,7 +1181,8 @@ class FileBotService(
     private val botMessageRepository: BotMessageRepository,
     private val messageSourceService: MessageSourceService,
     private val languageService: LanguageService,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val keyboardReplyMarkupHandler: KeyboardReplyMarkupHandler
 ) {
     fun saveMessageAndFile(
         message: Message,
@@ -1203,6 +1230,10 @@ class FileBotService(
 
                     var sendMessageByBot: Message
                     try {
+                        if(userRepository.findByTelegramIdAndDeletedFalse(message.from.id.toString()).role==Role.USER) {
+                            sendDocument.replyMarkup =
+                                keyboardReplyMarkupHandler.generateReplyMarkup(session.operator!!)
+                        }
                         sendMessageByBot = sender.execute(sendDocument)
                     } catch (e: Exception) {
                         try {
@@ -1217,6 +1248,7 @@ class FileBotService(
                                     )
                                 )
                             )
+
 
                             val user = session.user
                             user.isBlocked = true
@@ -1265,6 +1297,11 @@ class FileBotService(
 
                     var sendMessageByBot: Message
                     try {
+
+                        if(userRepository.findByTelegramIdAndDeletedFalse(message.from.id.toString()).role==Role.USER) {
+                            sendVideo.replyMarkup =
+                                keyboardReplyMarkupHandler.generateReplyMarkup(session.operator!!)
+                        }
                         sendMessageByBot = sender.execute(sendVideo)
                     } catch (e: Exception) {
                         try {
@@ -1326,6 +1363,10 @@ class FileBotService(
 
                     var sendMessageByBot: Message
                     try {
+                        if(userRepository.findByTelegramIdAndDeletedFalse(message.from.id.toString()).role==Role.USER) {
+                            sendAudio.replyMarkup =
+                                keyboardReplyMarkupHandler.generateReplyMarkup(session.operator!!)
+                        }
                         sendMessageByBot = sender.execute(sendAudio)
                     } catch (e: Exception) {
                         try {
@@ -1387,6 +1428,10 @@ class FileBotService(
 
                     var sendMessageByBot: Message
                     try {
+                        if(userRepository.findByTelegramIdAndDeletedFalse(message.from.id.toString()).role==Role.USER) {
+                            sendVideoNote.replyMarkup =
+                                keyboardReplyMarkupHandler.generateReplyMarkup(session.operator!!)
+                        }
                         sendMessageByBot = sender.execute(sendVideoNote)
                     } catch (e: Exception) {
                         try {
@@ -1451,6 +1496,10 @@ class FileBotService(
 
                     var sendMessageByBot: Message
                     try {
+                        if(userRepository.findByTelegramIdAndDeletedFalse(message.from.id.toString()).role==Role.USER) {
+                            sendPhoto.replyMarkup =
+                                keyboardReplyMarkupHandler.generateReplyMarkup(session.operator!!)
+                        }
                         sendMessageByBot = sender.execute(sendPhoto)
                     } catch (e: Exception) {
                         try {
@@ -1514,6 +1563,10 @@ class FileBotService(
 
                     var sendMessageByBot: Message
                     try {
+                        if(userRepository.findByTelegramIdAndDeletedFalse(message.from.id.toString()).role==Role.USER) {
+                            sendAnimation.replyMarkup =
+                                keyboardReplyMarkupHandler.generateReplyMarkup(session.operator!!)
+                        }
                         sendMessageByBot = sender.execute(sendAnimation)
                     } catch (e: Exception) {
                         try {
@@ -1578,6 +1631,10 @@ class FileBotService(
 
                     var sendMessageByBot: Message
                     try {
+                        if(userRepository.findByTelegramIdAndDeletedFalse(message.from.id.toString()).role==Role.USER) {
+                            sendVoice.replyMarkup =
+                                keyboardReplyMarkupHandler.generateReplyMarkup(session.operator!!)
+                        }
                         sendMessageByBot = sender.execute(sendVoice)
                     } catch (e: Exception) {
                         try {
@@ -1648,6 +1705,10 @@ class FileBotService(
 
                     var sendMessageByBot: Message
                     try {
+                        if(userRepository.findByTelegramIdAndDeletedFalse(message.from.id.toString()).role==Role.USER) {
+                            sendSticker.replyMarkup =
+                                keyboardReplyMarkupHandler.generateReplyMarkup(session.operator!!)
+                        }
                         sendMessageByBot = sender.execute(sendSticker)
                     } catch (e: Exception) {
                         try {
@@ -1697,6 +1758,10 @@ class FileBotService(
 
                 var sendMessageByBot: Message
                 try {
+                    if(userRepository.findByTelegramIdAndDeletedFalse(message.from.id.toString()).role==Role.USER) {
+                        sendMessage.replyMarkup =
+                            keyboardReplyMarkupHandler.generateReplyMarkup(session.operator!!)
+                    }
                     sendMessageByBot = sender.execute(sendMessage)
                 } catch (e: Exception) {
                     try {

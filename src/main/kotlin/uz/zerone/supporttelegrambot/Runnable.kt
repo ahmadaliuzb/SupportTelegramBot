@@ -12,9 +12,9 @@ Created by Akhmadali
 @Component
 class Runnable(private val languageRepository: LanguageRepository) : CommandLineRunner {
     override fun run(vararg args: String?) {
-        val language1 = Language(LanguageEnum.UZ)
+        val language1 = Language(LanguageEnum.ENG)
         val language2 = Language(LanguageEnum.RU)
-        val language3 = Language(LanguageEnum.ENG)
+        val language3 = Language(LanguageEnum.UZ)
         languageRepository.save(language1)
         languageRepository.save(language2)
         languageRepository.save(language3)
