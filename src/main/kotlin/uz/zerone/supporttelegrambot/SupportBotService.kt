@@ -1086,6 +1086,8 @@ class KeyboardReplyMarkupHandler(
                                 val botMessage = BotMessage(s_message.telegramMessageId, sendMessageByBot.messageId)
                                 botMessageRepository.save(botMessage)
                             }
+
+                            else -> {}
                         }
                         user.botStep = BotStep.FULL_SESSION
                         userRepository.save(user)
@@ -1108,7 +1110,6 @@ class KeyboardReplyMarkupHandler(
         val row1 = KeyboardRow()
         val row1Button1 = KeyboardButton()
         if (user.botStep == BotStep.FULL_SESSION && user.role == Role.OPERATOR) {
-            val row2 = KeyboardRow()
             row1Button1.text = messageSourceService.getMessage(
                 LocalizationTextKey.OPERATOR_CLOSE_BUTTON, languageService.getLanguageOfUser(user.telegramId.toLong())
             )
@@ -1120,7 +1121,6 @@ class KeyboardReplyMarkupHandler(
             row1.add(row1Button1)
             row1.add(row1Button2)
             rowList.add(row1)
-            rowList.add(row2)
         } else if (user.botStep == BotStep.ONLINE && user.role == Role.OPERATOR) {
             row1Button1.text = messageSourceService.getMessage(
                 LocalizationTextKey.OFFLINE_BUTTON, languageService.getLanguageOfUser(user.telegramId.toLong())
