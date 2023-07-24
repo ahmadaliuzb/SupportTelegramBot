@@ -37,7 +37,7 @@ class Components {
     @Bean
     fun defaultBotOptions(): DefaultBotOptions {
         val options = DefaultBotOptions()
-        options.maxThreads = 10
+        options.maxThreads=10
         return options
     }
 //

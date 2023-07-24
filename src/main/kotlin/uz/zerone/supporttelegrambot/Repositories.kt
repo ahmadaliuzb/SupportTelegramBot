@@ -77,6 +77,9 @@ interface UserRepository : BaseRepository<User> {
 
 interface SessionRepository : BaseRepository<Session> {
 
+
+    fun findAllByUserTelegramIdOrderByCreatedDate(user_telegramId: String):MutableList<Session>
+
     fun findByUserTelegramIdAndActiveTrue(user_telegramId: String): Session
 
     fun findByOperatorTelegramIdAndActiveTrue(operator_telegramId: String): Session

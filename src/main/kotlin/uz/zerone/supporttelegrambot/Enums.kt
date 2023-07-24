@@ -37,7 +37,8 @@ enum class BotStep{
     ONLINE,
     IN_SESSION,
     FULL_SESSION,
-    ASSESSMENT
+    ASSESSMENT,
+    CHANGE_LANGUAGE
 }
 
 enum class ContentType {
