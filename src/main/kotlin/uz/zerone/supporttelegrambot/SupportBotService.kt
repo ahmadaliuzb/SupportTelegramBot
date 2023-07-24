@@ -405,8 +405,7 @@ class MessageHandlerImpl(
                 }
 
                 val sessions =
-                    sessionRepository.findAllByUserTelegramIdOrderByCreatedDate(user.telegramId)
-                println(sessions)
+                    sessionRepository.findAllByUserTelegramIdOrderByCreatedDateDesc(user.telegramId)
                 val againMessage = sender.execute(
                     sendRateSelection(
                         SendMessage(
@@ -1352,7 +1351,7 @@ class FileBotService(
                 if (executive) {
 
                     val sendDocument = SendDocument(
-                        telegramId!!, InputFile(File(file.path))
+                        telegramId!!, InputFile(message.document.fileId)
                     )
                     sendDocument.caption = file.caption
 
@@ -1414,7 +1413,7 @@ class FileBotService(
 
                 if (executive) {
                     val sendVideo = SendVideo(
-                        telegramId!!, InputFile(File(file.path))
+                        telegramId!!, InputFile(message.video.fileId)
                     )
 
                     sendVideo.caption = file.caption
@@ -1476,7 +1475,7 @@ class FileBotService(
 
                 if (executive) {
                     val sendAudio = SendAudio(
-                        telegramId!!, InputFile(File(file.path))
+                        telegramId!!, InputFile(message.audio.fileId)
                     )
 
                     sendAudio.caption = file.caption
@@ -1540,7 +1539,7 @@ class FileBotService(
 
                 if (executive) {
                     val sendVideoNote = SendVideoNote(
-                        telegramId!!, InputFile(File(file.path))
+                        telegramId!!, InputFile(message.videoNote.fileId)
                     )
 
                     if (message.isReply) {
@@ -1592,7 +1591,7 @@ class FileBotService(
         else if (message.hasPhoto()) {
             val photos = message.photo
 
-            photos[1].run {
+            photos[2].run {
                 saveFileToDisk(
                     "$fileUniqueId.jpg", getFromTelegram(fileId, getBotToken(), sender)
                 )
@@ -1602,7 +1601,7 @@ class FileBotService(
 
                 if (executive) {
                     val sendPhoto = SendPhoto(
-                        telegramId!!, InputFile(File(file.path))
+                        telegramId!!, InputFile(photos[2].fileId)
                     )
 
                     sendPhoto.caption = file.caption
@@ -1668,7 +1667,7 @@ class FileBotService(
 
                 if (executive) {
                     val sendVoice = SendVoice(
-                        telegramId!!, InputFile(File(file.path))
+                        telegramId!!, InputFile(message.voice.fileId)
                     )
 
                     sendVoice.caption = file.caption
@@ -1740,7 +1739,7 @@ class FileBotService(
                 val file = createFile(message, "${fileUniqueId}${fileExtension}", ContentType.STICKER)
                 if (executive) {
                     val sendSticker = SendSticker(
-                        telegramId!!, InputFile(File(file.path))
+                        telegramId!!, InputFile(message.sticker.fileId)
                     )
 
                     if (message.isReply) {
@@ -1834,6 +1833,65 @@ class FileBotService(
                 val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
                 botMessageRepository.save(botMessage)
             }
+
+        }
+        //bu case dice emjoi si uchun yozildi
+        else if (message.hasDice()) {
+
+            val dice = message.dice
+            dice.run {
+
+                val receivedId = messageHandler.createMessage(message, session, MessageType.DICE)
+
+                if (executive) {
+                    val sendDice = SendDice(
+                        telegramId!!,
+                    )
+
+                    if (message.isReply) {
+                        if (botMessageRepository.existsByReceivedMessageId(
+                                message.replyToMessage.messageId
+                            )
+                        ) {
+                            val botMessage =
+                                botMessageRepository.findByReceivedMessageId(message.replyToMessage.messageId)
+                            sendDice.replyToMessageId = botMessage?.telegramMessageId
+                        } else {
+                            val botMessage =
+                                botMessageRepository.findByTelegramMessageId(message.replyToMessage.messageId)
+                            sendDice.replyToMessageId = botMessage?.receivedMessageId
+                        }
+                    }
+
+                    var sendMessageByBot: Message
+                    try {
+                        sendMessageByBot = sender.execute(sendDice)
+                    } catch (e: Exception) {
+                        try {
+                            sendDice.replyToMessageId = null
+                            sendMessageByBot = sender.execute(sendDice)
+                        } catch (e: Exception) {
+                            sendMessageByBot = sender.execute(
+                                SendMessage(
+                                    session.operator!!.telegramId, messageSourceService.getMessage(
+                                        LocalizationTextKey.BLOCK_USER_MESSAGE,
+                                        languageService.getLanguageOfUser(session.operator!!.telegramId.toLong())
+                                    )
+                                )
+                            )
+
+                            val user = session.user
+                            user.isBlocked = true
+                            user.botStep = BotStep.SHOW_MENU
+                            userRepository.save(user)
+
+                        }
+                    }
+                    val botMessage = BotMessage(receivedId, sendMessageByBot.messageId)
+                    botMessageRepository.save(botMessage)
+                }
+            }
+//[emoji dice]//
 
         }
     }

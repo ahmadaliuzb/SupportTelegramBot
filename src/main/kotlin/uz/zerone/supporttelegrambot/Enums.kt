@@ -24,7 +24,8 @@ enum class MessageType {
     VOICE,
     STICKER,
     TEXT,
-    LOCATION
+    LOCATION,
+    DICE
 
 }
 
