@@ -357,7 +357,7 @@ class MessageHandlerImpl(
                             savedUser.botStep = BotStep.ASSESSMENT
                             userRepository.save(savedUser)
 
-                            sender.execute(
+                            val lastInlineMessage = sender.execute(
                                 sendRateSelection(
                                     SendMessage(
                                         savedUser.telegramId, messageSourceService.getMessage(
@@ -367,7 +367,7 @@ class MessageHandlerImpl(
                                     ), session.id
                                 )
                             )
-
+                            lastMessageTelegramIds.put(savedUser.telegramId, lastInlineMessage.messageId)
                             //Akh
 
                             session.active = false
@@ -1653,7 +1653,6 @@ class FileBotService(
 
 
         }
-
 
 
         //for voice
