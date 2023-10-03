@@ -5,9 +5,9 @@ spring:
     active: local
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/support_bot
+    url: jdbc:postgresql://10.148.0.2:5432/support_bot
     username: postgres
-    password: root123
+    password: ahmadali1976
 
 
   jpa:
